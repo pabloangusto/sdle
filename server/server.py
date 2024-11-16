@@ -10,19 +10,31 @@ context = zmq.Context()
 socket = context.socket(zmq.REP)
 socket.connect("tcp://localhost:5560")
 
-active_lists = []
+active_lists = {}
 
-def request_received(message):
+def request_received(socket, message):
     print("Received request")
 
-    shopping_list_from_client = ShoppingList()
-    shopping_list_from_client.decode(message.decode())
-    print(shopping_list_from_client)
+    client_shopping_list = ShoppingList()
+    client_shopping_list.decode(message.decode())
+    print(client_shopping_list)
+
+    if client_shopping_list.list not in active_lists:
+        active_lists[client_shopping_list.list] = client_shopping_list
+        socket.send(b"Your list haven't changed.\n")
+
+    else:
+
+        active_lists[client_shopping_list.list].merge(client_shopping_list)
+        socket.send(b"Your list have changed.\n")
+
+
+    print(active_lists[client_shopping_list.list])
+
 
 
     
 while True:
     message = socket.recv()
     print(f"Received request: {message}")
-    request_received(message)
-    socket.send_string("Request processed")  # Enviar una respuesta al cliente
+    request_received(socket, message)

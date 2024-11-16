@@ -17,6 +17,7 @@ class ShoppingList:
     
     def increment_clock(self):
         self.vector_clock[self.list] = self.vector_clock.get(self.list, 0) + 1
+        print("vc", self.vector_clock)
         return self.vector_clock[self.list]
     
     def get_id(self):
@@ -104,8 +105,10 @@ class ShoppingList:
         
     def encode(self):
         encoded_list = ""
-        encoded_list += f"{self.list}\n"
-        
+        encoded_list += f"{self.list}:{self.id}\n"
+        for key, value in self.vector_clock.items():
+            encoded_list += f"{key},{value}:"
+        encoded_list += "\n"
         for name, item in self.items.items():
             encoded_list += f"{name}:{item['quantity']}:{item['acquired']}:{item['timestamp']}\n"
         
@@ -113,8 +116,14 @@ class ShoppingList:
 
     def decode(self, encoded_list):
         lines = encoded_list.split("\n")
-        self.list = lines[0]
-        for line in lines[1:]:
+        self.list = lines[0].split(":")[0]
+        self.id = lines[0].split(":")[1]
+        vector_clock = lines[1].split(":")
+        for pair in vector_clock:
+            if pair:
+                key, value = pair.split(",")
+                self.vector_clock[key] = value
+        for line in lines[2:]:
             if line:
                 name, quantity, acquired, timestamp = line.split(":")
                 self.items[name] = {
@@ -128,6 +137,14 @@ class ShoppingList:
         for name, item in self.items.items():
             result += f" - Name: {name}, Quantity: {item['quantity']}, Acquired: {item['acquired']}, Timestamp: {item['timestamp']}\n"
         return result
+    
+    def merge(self, other):
+
+        local_timestamp = self.vector_clock[self.id]
+        replica_timestamp = other.vector_clock[other.id]
+
+    
+
     
     
     
