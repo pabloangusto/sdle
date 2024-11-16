@@ -101,6 +101,33 @@ class ShoppingList:
                 self.items[name]["timestamp"] = timestamp
 
             return timestamp
+        
+    def encode(self):
+        encoded_list = ""
+        encoded_list += f"{self.list}\n"
+        
+        for name, item in self.items.items():
+            encoded_list += f"{name}:{item['quantity']}:{item['acquired']}:{item['timestamp']}\n"
+        
+        return encoded_list
+
+    def decode(self, encoded_list):
+        lines = encoded_list.split("\n")
+        self.list = lines[0]
+        for line in lines[1:]:
+            if line:
+                name, quantity, acquired, timestamp = line.split(":")
+                self.items[name] = {
+                    "quantity": quantity,
+                    "acquired": acquired,
+                    "timestamp": timestamp
+                }
+
+    def __str__(self):
+        result = "\n> Shopping List Items:\n"
+        for name, item in self.items.items():
+            result += f" - Name: {name}, Quantity: {item['quantity']}, Acquired: {item['acquired']}, Timestamp: {item['timestamp']}\n"
+        return result
     
     
     

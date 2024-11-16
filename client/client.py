@@ -32,10 +32,11 @@ def connect_to_server():
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
         socket.connect("tcp://localhost:5559")
+        return socket
     except Exception as e:
         # Handle connection errors
         print(f"Error connecting to the server: {e}\n")
-    
+        return None
 
 while True:
 
@@ -103,6 +104,20 @@ while True:
                     item_to_decrement = input("\n> Enter the name of the item to decrement: ")
                     client_local_lists[list_id].decrement_quantity(item_to_decrement)
                     print("\nItem quantity decremented successfully.")
+
+    # Syncronize Shopping List
+    socket = connect_to_server()
+    print("Socket: ", socket)
+    if socket is not None:
+        try:
+            # Send message to server
+            message = client_local_lists[list_id].encode()
+            print("Sending message to server: " + message)
+            socket.send_string(message)
+
+        except Exception as e:
+            print(f"Error sending message to the server: {e}\n")
+            socket.close()
 
         
     

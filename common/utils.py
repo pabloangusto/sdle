@@ -1,8 +1,4 @@
-import sys
 from os.path import dirname, abspath
-import urllib.parse
-import os
-from common.shoppingList import ShoppingList
 
 parent_dir = dirname(dirname(abspath(__file__)))
 
