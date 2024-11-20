@@ -8,6 +8,7 @@ from common.shoppingList import *
 import hashlib
 import threading
 import time
+import pdb
 
 id = int(sys.argv[1])
 port = 5500 + id
@@ -20,13 +21,13 @@ def hash_list_id(list_id):
     print("Hashing list id", hashlib.md5(list_id.encode()))
     return int(hashlib.md5(list_id.encode()).hexdigest(), 16)
 
-def forward_request(id, client_shopping_list):
+def forward_request(id_node, client_shopping_list):
     print("Forwarding request")
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://localhost:{5500+id}")
+    socket.connect(f"tcp://localhost:{5500+id_node}")
     message = client_shopping_list.encode()
-    print("Sending message to server: " + message)
+    print("Sending message to server: " + str(id_node) + message )
     socket.send_string(message)
     message = socket.recv_string()
     print(f"Received response: {message}")
@@ -37,8 +38,11 @@ def request_received(socket, message):
     client_shopping_list = ShoppingList()
     client_shopping_list.decode(message.decode())
     print(client_shopping_list)
-    print(len(active_nodes))
-    if id == hash_list_id(client_shopping_list.list) % len(active_nodes):
+
+    id_node = hash_list_id(client_shopping_list.list) % len(active_nodes)
+    # pdb.set_trace()
+
+    if id == id_node:
 
         if client_shopping_list.list not in active_lists:
             active_lists[client_shopping_list.list] = client_shopping_list
@@ -56,7 +60,9 @@ def request_received(socket, message):
         print(active_lists[client_shopping_list.list])
     else:
         print("Forwarding request")
-        forward_request(id, client_shopping_list)
+        forward_request(id_node, client_shopping_list)
+        socket.send(b"wait")
+
 
 
 # def listen_for_updates():
@@ -104,13 +110,15 @@ def seeds():
             print(active_nodes)
 
 def node_request():
-    context = zmq.Context()
-    socket = context.socket(zmq.REP)
-    socket.bind("tcp://localhost:"+str(port))
+    context3 = zmq.Context()
+    socket3 = context3.socket(zmq.REP)
+    socket3.bind("tcp://localhost:"+str(port))
     while True:
-        message = socket.recv()
+        print("Server node listening: " + str(port))
+        message = socket3.recv()
         print(f"Received request: {message}")
-        request_received(socket, message)
+        socket3.send(b"ok")
+        # request_received(socket, message)
 
 context = zmq.Context()
 socket = context.socket(zmq.REP)

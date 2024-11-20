@@ -146,7 +146,7 @@ class ShoppingList:
         return result
     
     def merge(self, other):
-        pdb.set_trace()  # Punto de interrupción
+        # pdb.set_trace()  # Punto de interrupción
         sucessor = False
         antecessor = False
 
@@ -166,7 +166,7 @@ class ShoppingList:
                 sucessor = True
                 break
 
-        pdb.set_trace()  # Punto de interrupción
+        # pdb.set_trace()  # Punto de interrupción
         if not antecessor and sucessor:
             self.set_vector_clock(other.get_vector_clock())
             self.set_items(other.get_items())

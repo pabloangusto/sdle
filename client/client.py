@@ -115,6 +115,9 @@ while True:
             print("Sending message to server: " + message)
             socket.send_string(message)
             response = socket.recv()
+            if response == b"wait":
+                print("Waiting for response from server")
+                response = socket.recv()
             print("Message received from server")
             if b"Your list haven't changed.\n" not in response:
                 print("Server response: " + response.decode())
