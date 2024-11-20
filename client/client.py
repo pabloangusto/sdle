@@ -114,6 +114,14 @@ while True:
             message = client_local_lists[list].encode()
             print("Sending message to server: " + message)
             socket.send_string(message)
+            response = socket.recv()
+            print("Message received from server")
+            if b"Your list haven't changed.\n" not in response:
+                print("Server response: " + response.decode())
+                server_shopping_list = ShoppingList()
+                server_shopping_list.decode(response.decode())
+                client_local_lists[list].set_items(server_shopping_list.get_items())
+                client_local_lists[list].set_vector_clock(server_shopping_list.get_vector_clock())
 
         except Exception as e:
             print(f"Error sending message to the server: {e}\n")
