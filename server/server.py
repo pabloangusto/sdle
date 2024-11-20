@@ -59,7 +59,7 @@ def request_received(socket, message_multipart):
 
             active_lists[client_shopping_list.list].merge(client_shopping_list)
             response = active_lists[client_shopping_list.list].encode()
-            print("Sending message to server: " + message)
+            print("Sending message to server: " + response)
             socket.send_multipart([message_multipart[0],b'', response.encode()])
 
 
@@ -112,7 +112,6 @@ def seeds():
                 if node:
                     active_nodes[node.split(":")[0]] = node.split(":")[1]
             time.sleep(4)
-            print(active_nodes)
 
 def node_request():
     context3 = zmq.Context()

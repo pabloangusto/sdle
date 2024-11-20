@@ -105,7 +105,7 @@ while True:
                     client_local_lists[list].decrement_quantity(item_to_decrement)
                     print("\nItem quantity decremented successfully.")
 
-    # Syncronize Shopping List
+    # Synchronize Shopping List
     socket = connect_to_server()
     print("Socket: ", socket)
     if socket is not None:
@@ -114,17 +114,24 @@ while True:
             message = client_local_lists[list].encode()
             print("Sending message to server: " + message)
             socket.send_string(message)
-            response = socket.recv()
-            if response == b"wait":
-                print("Waiting for response from server")
+            
+            # Set a timeout for receiving the response
+            socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
+            
+            try:
                 response = socket.recv()
-            print("Message received from server")
-            if b"Your list haven't changed.\n" not in response:
-                print("Server response: " + response.decode())
-                server_shopping_list = ShoppingList()
-                server_shopping_list.decode(response.decode())
-                client_local_lists[list].set_items(server_shopping_list.get_items())
-                client_local_lists[list].set_vector_clock(server_shopping_list.get_vector_clock())
+                if response == b"wait":
+                    print("Waiting for response from server")
+                    response = socket.recv()
+                print("Message received from server")
+                if b"Your list haven't changed.\n" not in response:
+                    print("Server response: " + response.decode())
+                    server_shopping_list = ShoppingList()
+                    server_shopping_list.decode(response.decode())
+                    client_local_lists[list].set_items(server_shopping_list.get_items())
+                    client_local_lists[list].set_vector_clock(server_shopping_list.get_vector_clock())
+            except zmq.Again:
+                print("No response from server within the timeout period.")
 
         except Exception as e:
             print(f"Error sending message to the server: {e}\n")
