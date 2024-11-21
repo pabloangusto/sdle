@@ -49,20 +49,31 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
 
 def propagate_update(preference_list, response):
     print("Propagating update")
-    for p in preference_list:
-        #pdb.set_trace()
-        if p != port:
-            context = zmq.Context()
-            socket = context.socket(zmq.REQ)
-            socket.connect(f"tcp://localhost:{p}")
-            print(f"Sending message to server: {p} {response}")
-            socket.send_string(response)
-            socket.RCVTIMEO = 10000  # 1000 milliseconds = 1 second
-            try:
-                ack = socket.recv()
-                print(f"Received ack from server {p}: {ack}")
-            except zmq.Again:
-                print(f"No ack from server {p} within the timeout period. Trying next node.")
+    replicated = 0
+    while replicated != N:
+        for p in preference_list:
+            #pdb.set_trace()
+            if p != port:
+                context = zmq.Context()
+                socket = context.socket(zmq.REQ)
+                socket.connect(f"tcp://localhost:{p}")
+                print(f"Sending message to server: {p} {response}")
+                socket.send_string(response)
+                socket.RCVTIMEO = 10000  # 1000 milliseconds = 1 second
+                try:
+                    ack = socket.recv()
+                    if ack == b"ok":
+                        print(f"Received ack from server {p}: {ack}")
+                        replicated += 1
+                        if replicated == N:
+                            break
+                    else:
+                        replicated = 1
+                        n_shopping_list = ShoppingList()
+                        n_shopping_list.decode(ack.decode())
+                        active_lists[n_shopping_list.list].merge(n_shopping_list)
+                except zmq.Again:
+                    print(f"No ack from server {p} within the timeout period. Trying next node.")
 
 def request_received(socket, message_multipart):
 
@@ -89,15 +100,18 @@ def request_received(socket, message_multipart):
             socket.send_multipart([message_multipart[0],b'', response.encode()])
 
         else:
+            antecessor, sucessor = active_lists[client_shopping_list.list].merge(client_shopping_list)
+            if sucessor:
+                response = "Your list haven't changed.\n"
+                socket.send_multipart([message_multipart[0],b'', response.encode()])
 
-            active_lists[client_shopping_list.list].merge(client_shopping_list)
-            response = active_lists[client_shopping_list.list].encode()
-            propagate_update(preference_list, response)
-            print("Sending message to server: " + response)
-            socket.send_multipart([message_multipart[0],b'', response.encode()])
+            else:
+                response = active_lists[client_shopping_list.list].encode()
+                propagate_update(preference_list, response)
+                print("Sending message to server: " + response)
+                socket.send_multipart([message_multipart[0],b'', response.encode()])
 
-
-        print(active_lists[client_shopping_list.list])
+            print(active_lists[client_shopping_list.list])
     else:
         print("Forwarding request")
         forward_request(preference_list, client_shopping_list, message_multipart)
@@ -166,11 +180,23 @@ def node_request():
         print(f"Received request: {message}")
         # pdb.set_trace()
         if len(message) == 1:
+            
             client_shopping_list = ShoppingList()
             client_shopping_list.decode(message[0].decode())
-            active_lists[client_shopping_list.list] = client_shopping_list
-            print(active_lists[client_shopping_list.list])
-            socket3.send(b"ok")
+            if client_shopping_list.list not in active_lists:
+                active_lists[client_shopping_list.list] = client_shopping_list
+                print(active_lists[client_shopping_list.list])
+                socket3.send(b"ok")
+
+            else:
+                antecessor, sucessor = active_lists[client_shopping_list.list].merge(client_shopping_list)
+                if antecessor and sucessor:
+                    response = active_lists[client_shopping_list.list].encode()
+                    print("Sending message to server: " + response)
+                    socket3.send_string(response.encode())
+                else:
+                    print(active_lists[client_shopping_list.list])
+                    socket3.send(b"ok")
 
         else:
             socket3.send(b"ok")

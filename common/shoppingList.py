@@ -177,7 +177,7 @@ class ShoppingList:
                     self.items[name] = item
             for id, clock in other.get_vector_clock().items():
                 self.vector_clock[id] = max(self.vector_clock.get(id, 0), clock)
-
+        return antecessor, sucessor
 
     
 
