@@ -122,6 +122,7 @@ class ShoppingList:
         return encoded_list
 
     def decode(self, encoded_list):
+        # pdb.set_trace()
         lines = encoded_list.split("\n")
         self.list = lines[0].split(":")[0]
         self.id = lines[0].split(":")[1]

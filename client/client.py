@@ -116,7 +116,7 @@ while True:
             socket.send_string(message)
             
             # Set a timeout for receiving the response
-            socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
+            socket.RCVTIMEO = 10000  # 1000 milliseconds = 1 second
             
             try:
                 response = socket.recv()

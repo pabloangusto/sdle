@@ -15,25 +15,54 @@ port = 5500 + id
 W = 2
 R = 2
 
+N=2
 
 active_lists = {}
-active_nodes = {}
-active_nodes[str(id)] = str(port)
+active_nodes = []
+active_nodes.append({"id": int(id), "port": int(port)})
 
 def hash_list_id(list_id):
     print("Hashing list id", hashlib.md5(list_id.encode()))
     return int(hashlib.md5(list_id.encode()).hexdigest(), 16)
 
-def forward_request(id_node, client_shopping_list, message_multipart):
+def forward_request(preference_list, client_shopping_list, message_multipart):
     print("Forwarding request")
     context = zmq.Context()
-    socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://localhost:{5500+id_node}")
     message = client_shopping_list.encode()
-    print("Sending message to server: " + str(id_node) + message )
-    socket.send_multipart([message_multipart[0],b'', message.encode()])
-    response = socket.recv_string()
-    print(f"Received response: {response}")
+    # pdb.set_trace()
+    for p in preference_list:
+        # pdb.set_trace()
+            socket = context.socket(zmq.REQ)
+            socket.connect(f"tcp://localhost:{p}")
+            print(f"Sending message to server: {p} {message}")
+            socket.send_multipart([message_multipart[0], b'', message.encode()])
+            socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
+            try:
+                response = socket.recv()
+                print(f"Received response: {response}")
+                break
+            except zmq.Again:
+                active_nodes.pop(str(p))
+                print(f"No response from server {p} within the timeout period. Trying next node.")
+
+
+
+def propagate_update(preference_list, response):
+    print("Propagating update")
+    for p in preference_list:
+        #pdb.set_trace()
+        if p != port:
+            context = zmq.Context()
+            socket = context.socket(zmq.REQ)
+            socket.connect(f"tcp://localhost:{p}")
+            print(f"Sending message to server: {p} {response}")
+            socket.send_string(response)
+            socket.RCVTIMEO = 10000  # 1000 milliseconds = 1 second
+            try:
+                ack = socket.recv()
+                print(f"Received ack from server {p}: {ack}")
+            except zmq.Again:
+                print(f"No ack from server {p} within the timeout period. Trying next node.")
 
 def request_received(socket, message_multipart):
 
@@ -45,13 +74,17 @@ def request_received(socket, message_multipart):
     print(client_shopping_list)
 
     id_node = hash_list_id(client_shopping_list.list) % len(active_nodes)
+    preference_list = []
+    #pdb.set_trace()
+    for n in range(N):
+        preference_list.append(active_nodes[(id_node + n) % len(active_nodes)]['port'])
     # pdb.set_trace()
-
-    if id >= id_node and id < id_node + W:
-
+    print(preference_list)
+    if port in preference_list:
         if client_shopping_list.list not in active_lists:
             active_lists[client_shopping_list.list] = client_shopping_list
             print("Sending not changed message to server")
+            propagate_update(preference_list, client_shopping_list.encode())
             response = "Your list haven't changed.\n"
             socket.send_multipart([message_multipart[0],b'', response.encode()])
 
@@ -59,6 +92,7 @@ def request_received(socket, message_multipart):
 
             active_lists[client_shopping_list.list].merge(client_shopping_list)
             response = active_lists[client_shopping_list.list].encode()
+            propagate_update(preference_list, response)
             print("Sending message to server: " + response)
             socket.send_multipart([message_multipart[0],b'', response.encode()])
 
@@ -66,7 +100,7 @@ def request_received(socket, message_multipart):
         print(active_lists[client_shopping_list.list])
     else:
         print("Forwarding request")
-        forward_request(id_node, client_shopping_list, message_multipart)
+        forward_request(preference_list, client_shopping_list, message_multipart)
 
 
 
@@ -96,10 +130,17 @@ def seeds():
         socket2.bind("tcp://*:5570")
         while True:
             message = socket2.recv_string()
-            active_nodes[message.split(":")[0]] = message.split(":")[1]
-            message = f"{id}:{port}\n"
-            for key, value in active_nodes.items():
-                message += f"{key}:{value}\n"
+            previous = False
+            for value in active_nodes:
+                # pdb.set_trace()
+                if(value['id'] == int(message.split(":")[0])):
+                    previous = True
+            if not previous:
+                # pdb.set_trace()
+                active_nodes.append({"id": int(message.split(":")[0]), "port": int(message.split(":")[1])})
+            message = ""
+            for node in active_nodes:
+                message += str(node['id']) + ":" + str(node['port']) + "\n"
             socket2.send_string(message)
     else:
         socket2 = context2.socket(zmq.REQ)
@@ -108,9 +149,11 @@ def seeds():
             socket2.send_string(f"{id}:{port}")
             message = socket2.recv_string()
             message = message.split("\n")
+            # pdb.set_trace()
+            active_nodes.clear()
             for node in message:
                 if node:
-                    active_nodes[node.split(":")[0]] = node.split(":")[1]
+                    active_nodes.append({"id": int(node.split(":")[0]), "port": int(node.split(":")[1])})
             time.sleep(4)
 
 def node_request():
@@ -121,9 +164,18 @@ def node_request():
         print("Server node listening: " + str(port))
         message = socket3.recv_multipart()
         print(f"Received request: {message}")
-        socket3.send(b"ok")
-        update_thread = threading.Thread(target=request_received, args=(socket, message))
-        update_thread.start()
+        # pdb.set_trace()
+        if len(message) == 1:
+            client_shopping_list = ShoppingList()
+            client_shopping_list.decode(message[0].decode())
+            active_lists[client_shopping_list.list] = client_shopping_list
+            print(active_lists[client_shopping_list.list])
+            socket3.send(b"ok")
+
+        else:
+            socket3.send(b"ok")
+            update_thread = threading.Thread(target=request_received, args=(socket, message))
+            update_thread.start()
         # request_received(socket, message)
 
 context = zmq.Context()
