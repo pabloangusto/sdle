@@ -68,10 +68,10 @@ def propagate_update(preference_list, response):
                         if replicated == N:
                             break
                     else:
-                        replicated = 1
                         n_shopping_list = ShoppingList()
                         n_shopping_list.decode(ack.decode())
                         active_lists[n_shopping_list.list].merge(n_shopping_list)
+                        replicated = 2
                 except zmq.Again:
                     print(f"No ack from server {p} within the timeout period. Trying next node.")
 
@@ -101,10 +101,9 @@ def request_received(socket, message_multipart):
 
         else:
             antecessor, sucessor = active_lists[client_shopping_list.list].merge(client_shopping_list)
-            if sucessor:
+            if not antecessor and sucessor:
                 response = "Your list haven't changed.\n"
                 socket.send_multipart([message_multipart[0],b'', response.encode()])
-
             else:
                 response = active_lists[client_shopping_list.list].encode()
                 propagate_update(preference_list, response)
@@ -118,25 +117,6 @@ def request_received(socket, message_multipart):
 
 
 
-# def listen_for_updates():
-#     print("Server listening")
-#     context1 = zmq.Context()
-#     socket1 = context1.socket(zmq.SUB)
-#     socket1.connect("tcp://localhost:5569")
-#     socket1.setsockopt_string(zmq.SUBSCRIBE, "all")
-#     while True:
-#         message = socket1.recv_string()
-#         print(f"Received request: {message}")
-        
-
-# def send_updates():
-#     print("Server sending")
-#     context2 = zmq.Context()
-#     socket2 = context2.socket(zmq.PUB)
-#     socket2.connect("tcp://localhost:5570")
-#     while True:
-#         socket2.send_string(f"all {id} {port}")
-#         time.sleep(4)
 def seeds():
     context2 = zmq.Context()
     if id == 0:
@@ -175,7 +155,6 @@ def node_request():
     socket3 = context3.socket(zmq.REP)
     socket3.bind("tcp://localhost:"+str(port))
     while True:
-        print("Server node listening: " + str(port))
         message = socket3.recv_multipart()
         print(f"Received request: {message}")
         # pdb.set_trace()
@@ -216,7 +195,6 @@ update_thread.start()
 # update_thread2.start()
 update_thread = threading.Thread(target=node_request)
 update_thread.start()
-hash_list_id("test")
 while True:
     message = socket.recv_multipart()
     print(f"Received request: {message}")

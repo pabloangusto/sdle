@@ -173,7 +173,7 @@ class ShoppingList:
             self.set_items(other.get_items())
         elif antecessor and sucessor:
             for name, item in other.get_items().items():
-                if name not in self.items or item["timestamp"] >= self.items[name]["timestamp"]:
+                if name not in self.items or item["timestamp"] > self.items[name]["timestamp"]:
                     self.items[name] = item
             for id, clock in other.get_vector_clock().items():
                 self.vector_clock[id] = max(self.vector_clock.get(id, 0), clock)
