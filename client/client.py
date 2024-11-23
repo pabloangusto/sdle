@@ -60,16 +60,19 @@ while True:
             case "1":
                 item = {}
                 name = input("\n> Enter item name: ")
-                quantity = input("> Enter item quantity: ")
-
-                try:
-                    item["quantity"] = int(quantity)
-                    item["acquired"] = False
-                    client_local_lists[list].add_item(name, item)
-                    print("\nItem added successfully.")
-
-                except ValueError:
-                    print("Quantity must be an integer.")
+                
+                while True:
+                    quantity = input("> Enter item quantity: ")
+                    try:
+                        item["quantity"] = int(quantity)
+                        break
+                        
+                    except ValueError:
+                        print("Quantity must be an integer.")
+                
+                item["acquired"] = False
+                client_local_lists[list].add_item(name, item)
+                print("\nItem added successfully.")
 
             case "2":
                 if client_local_lists[list].is_empty():
