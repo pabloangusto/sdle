@@ -1,5 +1,72 @@
 import pdb
 
+class GCounter:
+    def __init__(self):
+        self.counters = {}
+
+    def inc(self, id, value = 1):
+        if id not in self.counters:
+            self.counters[id] = 0
+        self.counters[id] += value
+
+    def read(self):
+        return sum(self.counters.values())
+
+    def merge(self, other):
+        for replica, value in other.counters.items():
+            if replica in self.counters:
+                self.counters[replica] = max(self.counters[replica], value)
+            else:
+                self.counters[replica] = value
+
+    def __str__(self):
+        message = ""
+        for id, value in self.counters.items():
+            message += f"{id},{value}."
+        return message
+    
+    def from_string(self, counter_str):
+        if counter_str:
+            for pair in counter_str.split("."):
+                if pair:
+                    id, value = pair.split(",")
+                    self.counters[id] = int(value)
+
+class PNCounter:
+    def __init__(self):
+        self.increment_counter = GCounter()  
+        self.decrement_counter = GCounter() 
+    
+    def assign(self, id, value):
+        for _ in range(value):
+            self.increment_counter.inc(id)
+    
+    def increment(self, id, value = 1):
+        self.increment_counter.inc(id, value)
+
+    def decrement(self, id, value = 1):
+        if self.read() >= 1: 
+            self.decrement_counter.inc(id, value)
+
+    def read(self):
+        return self.increment_counter.read() - self.decrement_counter.read()
+
+    def merge(self, other):
+        self.increment_counter.merge(other.increment_counter)
+        self.decrement_counter.merge(other.decrement_counter)
+
+    def __str__(self):
+        return f"{self.increment_counter};{self.decrement_counter}"
+    
+    def from_string(self, counter_str):
+        # pdb.set_trace()
+        increment_str, decrement_str = counter_str.split(";")
+        self.increment_counter.from_string(increment_str)
+        self.decrement_counter.from_string(decrement_str)
+    
+
+
+
 class ShoppingList:
 
     def __init__(self):
@@ -17,7 +84,6 @@ class ShoppingList:
     
     def increment_clock(self):
         self.vector_clock[self.id] = self.vector_clock.get(self.id, 0) + 1
-        print("vc", self.vector_clock)
         return self.vector_clock[self.id]
     
     def get_id(self):
@@ -46,12 +112,15 @@ class ShoppingList:
     def add_item(self, name, item):
         timestamp = self.increment_clock()
 
-        if name not in self.items:  
+        if name not in self.items: 
+            counter = PNCounter() 
+            counter.assign(self.id, item["quantity"])
             self.items[name] = {
-                "quantity": item["quantity"],
                 "acquired": item["acquired"],
-                "timestamp": timestamp
+                "timestamp": timestamp,
+                "counter": counter
             }
+            # pdb.set_trace()
 
         return timestamp
     
@@ -86,11 +155,9 @@ class ShoppingList:
         if name in self.items:
 
             timestamp = max(self.increment_clock(), int(self.items[name]["timestamp"])) + 1
-            updated_quantity = int(self.items[name]["quantity"]) + 1
+            self.items[name]["counter"].increment(self.id)
 
-            self.items[name]["quantity"] = updated_quantity
             self.items[name]["timestamp"] = timestamp
-
             print("Increment quantity")
 
             print(self.items[name]["timestamp"])
@@ -100,14 +167,9 @@ class ShoppingList:
     def decrement_quantity(self, name):
         if name in self.items:
             timestamp = max(self.increment_clock(), int(self.items[name]["timestamp"])) +  1           
-            updated_quantity = int(self.items[name]["quantity"]) - 1
+            self.items[name]["counter"].decrement(self.id)
 
-            if updated_quantity == 0:
-                del self.items[name]
-            else:
-                self.items[name]["quantity"] = updated_quantity
-                self.items[name]["timestamp"] = timestamp
-
+            self.items[name]["timestamp"] = timestamp
             return timestamp
         
     def encode(self):
@@ -117,7 +179,7 @@ class ShoppingList:
             encoded_list += f"{key},{value}:"
         encoded_list += "\n"
         for name, item in self.items.items():
-            encoded_list += f"{name}:{item['quantity']}:{item['acquired']}:{item['timestamp']}\n"
+            encoded_list += f"{name}:{item['acquired']}:{item['timestamp']}:{item['counter']}\n"
         
         return encoded_list
 
@@ -133,17 +195,21 @@ class ShoppingList:
                 self.vector_clock[key] = int(value)
         for line in lines[2:]:
             if line:
-                name, quantity, acquired, timestamp = line.split(":")
+                name, acquired, timestamp, counter = line.split(":")
+                c = PNCounter()
+                c.from_string(counter)
                 self.items[name] = {
-                    "quantity": quantity,
                     "acquired": acquired,
-                    "timestamp": timestamp
+                    "timestamp": timestamp,
+                    "counter": c
                 }
+                # pdb.set_trace()
 
+        print("Decoded list", self)
     def __str__(self):
         result = "\n> Shopping List Items:\n"
         for name, item in self.items.items():
-            result += f" - Name: {name}, Quantity: {item['quantity']}, Acquired: {item['acquired']}, Timestamp: {item['timestamp']}\n"
+            result += f" - Name: {name}, Timestamp: {item['timestamp']}, Counter: {item['counter'].read()}\n"
         return result
     
     def merge(self, other):
@@ -172,9 +238,17 @@ class ShoppingList:
             self.set_vector_clock(other.get_vector_clock())
             self.set_items(other.get_items())
         elif antecessor and sucessor:
-            for name, item in other.get_items().items():
-                if name not in self.items or item["timestamp"] > self.items[name]["timestamp"]:
+            for name, item in other.items.items():
+                if name not in self.items:
                     self.items[name] = item
+                else:
+                    # pdb.set_trace()
+                    self.items[name]["aquired"] = item["acquired"]
+                    self.items[name]["timestamp"] = item["timestamp"]
+    
+                    self.items[name]["counter"].merge(item["counter"])
+                    # pdb.set_trace()
+   
             for id, clock in other.get_vector_clock().items():
                 self.vector_clock[id] = max(self.vector_clock.get(id, 0), clock)
         return antecessor, sucessor

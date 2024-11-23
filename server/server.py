@@ -10,10 +10,9 @@ import threading
 import time
 import pdb
 
-id = int(sys.argv[1])
+id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 port = 5500 + id
-W = 2
-R = 2
+
 
 N=2
 
@@ -49,7 +48,7 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
 
 def propagate_update(preference_list, response):
     print("Propagating update")
-    replicated = 0
+    replicated = 1
     while replicated != N:
         for p in preference_list:
             #pdb.set_trace()
@@ -63,8 +62,8 @@ def propagate_update(preference_list, response):
                 try:
                     ack = socket.recv()
                     if ack == b"ok":
-                        print(f"Received ack from server {p}: {ack}")
                         replicated += 1
+                        print(f"Received ack from server {p}: {ack} {replicated}")
                         if replicated == N:
                             break
                     else:
@@ -74,6 +73,7 @@ def propagate_update(preference_list, response):
                         replicated = 2
                 except zmq.Again:
                     print(f"No ack from server {p} within the timeout period. Trying next node.")
+    print(f"EXITTTTTTT")
 
 def request_received(socket, message_multipart):
 
@@ -100,15 +100,12 @@ def request_received(socket, message_multipart):
             socket.send_multipart([message_multipart[0],b'', response.encode()])
 
         else:
+            # pdb.set_trace()
             antecessor, sucessor = active_lists[client_shopping_list.list].merge(client_shopping_list)
-            if not antecessor and sucessor:
-                response = "Your list haven't changed.\n"
-                socket.send_multipart([message_multipart[0],b'', response.encode()])
-            else:
-                response = active_lists[client_shopping_list.list].encode()
-                propagate_update(preference_list, response)
-                print("Sending message to server: " + response)
-                socket.send_multipart([message_multipart[0],b'', response.encode()])
+            response = active_lists[client_shopping_list.list].encode()
+            propagate_update(preference_list, response)
+            print("Sending message to server: " + response)
+            socket.send_multipart([message_multipart[0],b'', response.encode()])
 
             print(active_lists[client_shopping_list.list])
     else:

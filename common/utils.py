@@ -37,6 +37,6 @@ def show_menu(list_id):
 def print_items(list_id):
     print(f"\n> {list_id} Shopping List Items:")
     for name, item in client_local_lists[list_id].items.items():
-        print(f" - Name: {name}, Quantity: {item['quantity']}, Acquired: {item['acquired']}, Timestamp: {item['timestamp']}")
+        print(f" - Name: {name}, Acquired: {item['acquired']}, Timestamp: {item['timestamp']}, Counter: {item['counter'].read()}")
 
  
