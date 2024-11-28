@@ -15,7 +15,9 @@ id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 port = 5500 + id
 
 
-N=2
+N=2 # Length of preference list
+
+VN=3 # Number of virtual nodes
 
 active_lists = {}
 active_nodes = []
@@ -28,14 +30,14 @@ def hash_list_id(list_id):
 def forward_request(preference_list, client_shopping_list, message_multipart):
     print("Forwarding request")
     context = zmq.Context()
-    message = client_shopping_list.encode()
+    message = json.dumps(client_shopping_list.to_dict())
     # pdb.set_trace()
     for p in preference_list:
         # pdb.set_trace()
             socket = context.socket(zmq.REQ)
             socket.connect(f"tcp://localhost:{p}")
             print(f"Sending message to server: {p} {message}")
-            socket.send_multipart([message_multipart[0], b'', message.encode()])
+            socket.send_multipart([message_multipart[0], b'', message.encode() ])
             socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
             try:
                 response = socket.recv()
@@ -82,12 +84,34 @@ def request_received(socket, message_multipart):
 
     client_shopping_list = ShoppingList().from_dict(json.loads(message))
     print(client_shopping_list)
+    # id_node = 0
+    hash_list = hash_list_id(client_shopping_list.list)
+    # hash_n = 0
+    # for i in range(VN):
+    #     for index, n in active_nodes:
+    #         if i != 0:
+    #             hash_n = int(hashlib.md5(str(n.id) + str(i)).hexdigest(), 16)
+                
+    #         else:
+    #             hash_n = int(hashlib.md5(n.id).hexdigest(), 16)
 
-    id_node = hash_list_id(client_shopping_list.list) % len(active_nodes)
+    #         if(i > hash_list and i < hash_n):
+    #             hash_n = i
+    #             id_node = index
+    hash_nodes = []
+    for i in range(VN):
+        for n in active_nodes:
+            if i == 0:
+                hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5(str(n['id']).encode()).hexdigest(), 16)})
+            else:
+                hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5((str(n['id']) + str(i)).encode()).hexdigest(), 16)})
+    # pdb.set_trace() 
+    sorted_nodes = sorted(hash_nodes, key=lambda x: x['h'], reverse=True)
+    top_nodes = [node for node in sorted_nodes if node['h'] > hash_list][:N]
     preference_list = []
     #pdb.set_trace()
-    for n in range(N):
-        preference_list.append(active_nodes[(id_node + n) % len(active_nodes)]['port'])
+    for n in top_nodes:
+        preference_list.append(n['port'])
     # pdb.set_trace()
     print(preference_list)
     if port in preference_list:
