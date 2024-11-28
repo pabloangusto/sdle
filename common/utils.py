@@ -1,5 +1,5 @@
 from os.path import dirname, abspath
-
+import pdb
 parent_dir = dirname(dirname(abspath(__file__)))
 
 
@@ -36,7 +36,8 @@ def show_menu(list_id):
 
 def print_items(list_id):
     print(f"\n> {list_id} Shopping List Items:")
-    for name, item in client_local_lists[list_id].items.items():
-        print(f" - Name: {name}, Acquired: {item['acquired']}, Timestamp: {item['timestamp']}, Counter: {item['counter'].read()}")
+    # pdb.set_trace()
+    for name, item in client_local_lists[list_id].items.value().items():
+        print(f" - Name: {name}, Quantity: {item['quantity']}")
 
  

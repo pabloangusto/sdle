@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import zmq
@@ -111,25 +112,19 @@ while True:
     if socket is not None:
         try:
             # Send message to server
-            message = client_local_lists[list].encode()
+            message = json.dumps(client_local_lists[list].to_dict())
             print("Sending message to server: " + message)
             socket.send_string(message)
             
             # Set a timeout for receiving the response
-            socket.RCVTIMEO = 10000  # 1000 milliseconds = 1 second
+            socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
             
             try:
-                response = socket.recv()
-                if response == b"wait":
-                    print("Waiting for response from server")
-                    response = socket.recv()
+                response = socket.recv().decode()
                 print("Message received from server")
-                if b"Your list haven't changed.\n" not in response:
-                    print("Server response: " + response.decode())
-                    server_shopping_list = ShoppingList()
-                    server_shopping_list.decode(response.decode())
-                    client_local_lists[list].set_items(server_shopping_list.get_items())
-                    client_local_lists[list].set_vector_clock(server_shopping_list.get_vector_clock())
+                server_shopping_list = ShoppingList().from_dict(json.loads(response))
+                client_local_lists[list] = server_shopping_list
+
             except zmq.Again:
                 print("No response from server within the timeout period.")
 
