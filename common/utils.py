@@ -34,10 +34,13 @@ def show_menu(list_id):
 
     return action
 
+# def print_items(list_id):
+#     print(f"\n> {list_id} Shopping List Items:")
+#     # pdb.set_trace()
+#     for name, item in client_local_lists[list_id].items.value().items():
+#         print(f" - Name: {name}, Quantity: {item['quantity']}, Read Count: {item['ccounter'].read()}")
+
 def print_items(list_id):
     print(f"\n> {list_id} Shopping List Items:")
-    # pdb.set_trace()
     for name, item in client_local_lists[list_id].items.value().items():
-        print(f" - Name: {name}, Quantity: {item['quantity']}")
-
- 
+            print(f" - Name: {name}, Quantity: {item}")

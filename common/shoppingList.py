@@ -84,6 +84,7 @@ class DotKernel(Generic[T]):
         return list(self.Entries.values())
 
     def add(self, rep, v):
+        pdb.set_trace()
         dot = self.Context.nextDot(rep)
         self.Entries[dot] = v
         self.Context.add(dot)
@@ -178,17 +179,126 @@ class AWORSet(Generic[T]):
             "delta": self.delta
         }
 
+# class AWORMap(Generic[K, V]):
+#     def __init__(self):
+#         self.keys = AWORSet[K]()
+#         self.entries = dict()
+
+#     def value(self):
+#         return self.entries
+
+#     def add(self, r, key: K, value: V):
+#         self.keys.add(r, key)
+#         self.entries[key] = value
+#         return self
+
+#     def rem(self, r, key: K):
+#         self.keys.rem(r, key)
+#         if key in self.entries:
+#             del self.entries[key]
+#         return self
+
+#     def merge(self, r1, other, r2):
+#         self.keys.merge(other.keys)
+#         entries = dict()
+#         # pdb.set_trace()
+#         for key in self.keys.value():
+#             if key in self.entries and key in other.entries:
+#                 entries[key] = self.entries[key] if r1 > r2 else other.entries[key]
+#             elif key in self.entries:
+#                 entries[key] = self.entries[key]
+#             elif key in other.entries:
+#                 entries[key] = other.entries[key]
+
+#         self.entries = entries
+
+#     def from_dict(self, data):
+#         self.keys.from_dict(data.get("keys", {}))
+#         self.entries = data.get("entries", {})
+#         return self
+    
+#     def to_dict(self):
+#         return {
+#             "keys": self.keys.to_dict(),
+#             "entries": self.entries
+#         }
+    
+class CCounter(Generic[V, K]):
+    def __init__(self, id: K = None, context: DotContext = None):
+        self.id = id
+        self.dk = DotKernel[V]() if context is None else DotKernel[V]()
+        if context:
+            self.dk.Context = context
+
+    def context(self):
+        return self.dk.Context
+
+    def inc(self, val: V = 1):
+        dots = set()
+        base = 0
+        pdb.set_trace()
+        for dot, value in self.dk.Entries.items():
+            if dot[0] == self.id:
+                base = max(base, value)
+                dots.add(dot)
+        for dot in dots:
+            self.dk.merge(self.dk)
+            del self.dk.Entries[dot]
+        self.dk.add(self.id, base + val)
+
+    def dec(self, val: V = 1):
+        r = CCounter(self.id)
+        dots = set()
+        base = 0
+        for dot, value in self.dk.Entries.items():
+            if dot[0] == self.id:
+                base = max(base, value)
+                dots.add(dot)
+        for dot in dots:
+            r.dk.merge(self.dk)
+            del self.dk.Entries[dot]
+        r.dk.add(self.id, base - val)
+        return r
+
+    def reset(self):
+        r = CCounter(self.id)
+        r.dk = DotKernel[V]()
+        return r
+
+    def read(self):
+        return sum(value.read() if isinstance(value, CCounter) else value for value in self.dk.Entries.values())
+
+    def join(self, other):
+        self.dk.merge(other.dk)
+
+    def __str__(self):
+        return f"CausalCounter: {self.dk}"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "dk": self.dk.to_dict()
+        }
+
+    def from_dict(self, data):
+        self.id = data.get("id", None)
+        self.dk.from_dict(data.get("dk", {}))
+        return self
+
 class AWORMap(Generic[K, V]):
     def __init__(self):
         self.keys = AWORSet[K]()
         self.entries = dict()
 
     def value(self):
-        return self.entries
+        return {k: v.read() for k, v in self.entries.items()}
 
     def add(self, r, key: K, value: V):
+        pdb.set_trace()
         self.keys.add(r, key)
-        self.entries[key] = value
+        if key not in self.entries:
+            self.entries[key] = CCounter(id=r)
+        self.entries[key].dk.add(r, value)
         return self
 
     def rem(self, r, key: K):
@@ -200,10 +310,14 @@ class AWORMap(Generic[K, V]):
     def merge(self, r1, other, r2):
         self.keys.merge(other.keys)
         entries = dict()
-        # pdb.set_trace()
         for key in self.keys.value():
             if key in self.entries and key in other.entries:
-                entries[key] = self.entries[key] if r1 > r2 else other.entries[key]
+                if r1 > r2:
+                    entries[key] = self.entries[key]
+                    entries[key].join(other.entries[key])
+                else:
+                    entries[key] = other.entries[key]
+                    entries[key].join(self.entries[key])
             elif key in self.entries:
                 entries[key] = self.entries[key]
             elif key in other.entries:
@@ -213,13 +327,13 @@ class AWORMap(Generic[K, V]):
 
     def from_dict(self, data):
         self.keys.from_dict(data.get("keys", {}))
-        self.entries = data.get("entries", {})
+        self.entries = {k: CCounter(id=k).from_dict(v) for k, v in data.get("entries", {}).items()}
         return self
     
     def to_dict(self):
         return {
             "keys": self.keys.to_dict(),
-            "entries": self.entries
+            "entries": {k: v.to_dict() for k, v in self.entries.items()}
         }
 
 # class GCounter:
@@ -286,14 +400,119 @@ class AWORMap(Generic[K, V]):
 #         self.increment_counter.from_string(increment_str)
 #         self.decrement_counter.from_string(decrement_str)
     
+# class ShoppingList:
+
+#     def __init__(self):
+#         self.id = 0
+#         self.list = 0
+#         self.items = AWORMap[str, dict]()
+
+    
+#     def get_id(self):
+#         return self.id
+
+#     def set_id(self, id):
+#         self.id = id
+
+#     def get_list(self):
+#         return self.list
+
+#     def set_list(self, list):
+#         self.list = list
+    
+#     def get_items(self):
+#         return self.items
+    
+#     def set_items(self, items):
+#         self.items = items
+    
+    
+#     def is_empty(self):
+#         return len(self.items.value()) == 0
+    
+#     def is_equal(self, other):
+#         return self.items.to_dict() == other.items.to_dict()
+
+#     def add_item(self, name, item):
+#         item_data = {
+#             "quantity": item["quantity"],
+#         }
+#         self.items.add(self.id, name, item_data)
+    
+#     def delete_item(self, name):
+#         if name in self.items.value():
+#             self.items.rem(self.id, name)
+#         else:
+#             raise ValueError("Item does not exist in the shopping list.")
+
+#     def item_acquired(self, name):
+#         if name in self.items:
+#             self.items[name]["acquired"] = True
+#             self.items[name]["timestamp"] = timestamp
+#         else:
+#             raise ValueError("Item does not exist in the shopping list.")
+
+#     def item_not_acquired(self, name):
+#         if name in self.items:
+#             timestamp = self.increment_clock()
+#             self.items[name]["acquired"] = False
+#             self.items[name]["timestamp"] = timestamp
+#             return timestamp
+#         else:
+#             raise ValueError("Item does not exist in the shopping list.")
+
+#     def increment_quantity(self, name):
+#         if name in self.items.value():
+#             pdb.set_trace()
+#             item = self.items.value()[name]
+#             item["quantity"] += 1
+#             self.items.add(self.id, name, item)
+#         else:
+#             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
+
+    
+#     def decrement_quantity(self, name):
+#         if name in self.items.value():
+#             item = self.items.value()[name]
+#             item["quantity"] = max(item["quantity"] - 1, 0)
+#             self.items.add(self.id, name, item)
+#         else:
+#             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
+
+        
+    
+
+#     def from_dict(self, data):
+#         self.id = data.get("id", 0)
+#         self.list = data.get("list", 0)
+#         self.items.from_dict(data.get("items", {}))
+#         return self
+#     def to_dict(self):
+#         return {
+#             "id": self.id,
+#             "list": self.list,
+#             "items": self.items.to_dict() 
+#         }
+    
+#     def __str__(self):
+#         result = "\n> Shopping List Items:\n"
+#         for name, item in self.items.value().items():
+#             result += f" - Name: {name}, Counter: {item['quantity']}\n"
+#         return result
+    
+#     def merge(self, other):
+#         self.items.merge(self.id, other.items, other.id)
+
+
+    
+
 class ShoppingList:
 
     def __init__(self):
         self.id = 0
         self.list = 0
-        self.items = AWORMap[str, dict]()
+        self.items = AWORMap[str, CCounter]()
 
-    
     def get_id(self):
         return self.id
 
@@ -312,7 +531,6 @@ class ShoppingList:
     def set_items(self, items):
         self.items = items
     
-    
     def is_empty(self):
         return len(self.items.value()) == 0
     
@@ -320,10 +538,10 @@ class ShoppingList:
         return self.items.to_dict() == other.items.to_dict()
 
     def add_item(self, name, item):
-        item_data = {
-            "quantity": item["quantity"],
-        }
-        self.items.add(self.id, name, item_data)
+        if name not in self.items.value():
+            self.items.add(self.id, name, item["quantity"])
+        # pdb.set_trace()
+        # self.items.entries[name].inc(item["quantity"])
     
     def delete_item(self, name):
         if name in self.items.value():
@@ -331,97 +549,40 @@ class ShoppingList:
         else:
             raise ValueError("Item does not exist in the shopping list.")
 
-    def item_acquired(self, name):
-        if name in self.items:
-            self.items[name]["acquired"] = True
-            self.items[name]["timestamp"] = timestamp
-        else:
-            raise ValueError("Item does not exist in the shopping list.")
-
-    def item_not_acquired(self, name):
-        if name in self.items:
-            timestamp = self.increment_clock()
-            self.items[name]["acquired"] = False
-            self.items[name]["timestamp"] = timestamp
-            return timestamp
-        else:
-            raise ValueError("Item does not exist in the shopping list.")
-
     def increment_quantity(self, name):
         if name in self.items.value():
-            pdb.set_trace()
-            item = self.items.value()[name]
-            item["quantity"] += 1
-            self.items.add(self.id, name, item)
+            self.items.entries[name].inc()
         else:
             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
 
-    
     def decrement_quantity(self, name):
         if name in self.items.value():
-            item = self.items.value()[name]
-            item["quantity"] = max(item["quantity"] - 1, 0)
-            self.items.add(self.id, name, item)
+            self.items.entries[name].dec()
         else:
             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
-
-        
-    # def encode(self):
-    #     encoded_list = ""
-    #     encoded_list += f"{self.list}:{self.id}\n"
-    #     for key, value in self.vector_clock.items():
-    #         encoded_list += f"{key},{value}:"
-    #     encoded_list += "\n"
-    #     for name, item in self.items.items():
-    #         encoded_list += f"{name}:{item['acquired']}:{item['timestamp']}:{item['quantity']}\n"
-        
-    #     return encoded_list
-
-    # def decode(self, encoded_list):
-    #     # pdb.set_trace()
-    #     lines = encoded_list.split("\n")
-    #     self.list = lines[0].split(":")[0]
-    #     self.id = lines[0].split(":")[1]
-    #     vector_clock = lines[1].split(":")
-    #     for pair in vector_clock:
-    #         if pair:
-    #             key, value = pair.split(",")
-    #             self.vector_clock[key] = int(value)
-    #     for line in lines[2:]:
-    #         if line:
-    #             name, acquired, timestamp, quantity = line.split(":")
-    #             self.items[name] = {
-    #                 "acquired": acquired,
-    #                 "timestamp": timestamp,
-    #                 "quantity": quantity
-    #             }
-    #             # pdb.set_trace()
-
-    #     print("Decoded list", self)
 
     def from_dict(self, data):
         self.id = data.get("id", 0)
         self.list = data.get("list", 0)
         self.items.from_dict(data.get("items", {}))
         return self
+
     def to_dict(self):
         return {
             "id": self.id,
             "list": self.list,
-            "items": self.items.to_dict()  # Convertimos los items a diccionario
+            "items": self.items.to_dict() 
         }
     
     def __str__(self):
         result = "\n> Shopping List Items:\n"
         for name, item in self.items.value().items():
-            result += f" - Name: {name}, Counter: {item['quantity']}\n"
+            result += f" - Name: {name}, Counter: {item}\n"
         return result
     
     def merge(self, other):
         self.items.merge(self.id, other.items, other.id)
 
-
-    
 
     
     

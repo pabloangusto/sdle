@@ -10,10 +10,10 @@ def test_operations():
     m2.add("pablo", "taste", "bitter")
     m2.add("pablo", "color", "green")
     print(m2.entries["taste"])
-    m1.merge(m2)
-    print(m1.entries["color"])
-    m1.rem("taste")
-    print(m1.entries.get("taste", "Not found"))
+    # m1.merge(m2)
+    # print(m1.entries["color"])
+    # m1.rem("taste")
+    # print(m1.entries.get("taste", "Not found"))
 
     # # AWORSet operations
     # s1 = AWORSet("x", dc)

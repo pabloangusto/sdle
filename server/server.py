@@ -84,20 +84,7 @@ def request_received(socket, message_multipart):
 
     client_shopping_list = ShoppingList().from_dict(json.loads(message))
     print(client_shopping_list)
-    # id_node = 0
     hash_list = hash_list_id(client_shopping_list.list)
-    # hash_n = 0
-    # for i in range(VN):
-    #     for index, n in active_nodes:
-    #         if i != 0:
-    #             hash_n = int(hashlib.md5(str(n.id) + str(i)).hexdigest(), 16)
-                
-    #         else:
-    #             hash_n = int(hashlib.md5(n.id).hexdigest(), 16)
-
-    #         if(i > hash_list and i < hash_n):
-    #             hash_n = i
-    #             id_node = index
     hash_nodes = []
     for i in range(VN):
         for n in active_nodes:
