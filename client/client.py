@@ -112,7 +112,7 @@ while True:
     if socket is not None:
         try:
             # Send message to server
-            pdb.set_trace()
+            # pdb.set_trace()
             message = json.dumps(client_local_lists[list].to_dict())
             print("Sending message to server: " + message)
             socket.send_string(message)
@@ -124,7 +124,7 @@ while True:
                 response = socket.recv().decode()
                 print("Message received from server")
                 server_shopping_list = ShoppingList().from_dict(json.loads(response))
-                client_local_lists[list] = server_shopping_list
+                client_local_lists[list].items = server_shopping_list.items
 
             except zmq.Again:
                 print("No response from server within the timeout period.")

@@ -84,7 +84,7 @@ class DotKernel(Generic[T]):
         return list(self.Entries.values())
 
     def add(self, rep, v):
-        pdb.set_trace()
+        # pdb.set_trace()
         dot = self.Context.nextDot(rep)
         self.Entries[dot] = v
         self.Context.add(dot)
@@ -233,32 +233,31 @@ class CCounter(Generic[V, K]):
     def context(self):
         return self.dk.Context
 
-    def inc(self, val: V = 1):
+    def inc(self, id, val: V = 1):
         dots = set()
         base = 0
         pdb.set_trace()
         for dot, value in self.dk.Entries.items():
-            if dot[0] == self.id:
+            if dot[0] == id:
                 base = max(base, value)
                 dots.add(dot)
         for dot in dots:
             self.dk.merge(self.dk)
             del self.dk.Entries[dot]
-        self.dk.add(self.id, base + val)
+        self.dk.add(id, base + val)
 
-    def dec(self, val: V = 1):
-        r = CCounter(self.id)
+    def dec(self, id, val: V = 1):
         dots = set()
         base = 0
+        pdb.set_trace()
         for dot, value in self.dk.Entries.items():
-            if dot[0] == self.id:
+            if dot[0] == id:
                 base = max(base, value)
                 dots.add(dot)
         for dot in dots:
-            r.dk.merge(self.dk)
+            self.dk.merge(self.dk)
             del self.dk.Entries[dot]
-        r.dk.add(self.id, base - val)
-        return r
+        self.dk.add(id, base - val)
 
     def reset(self):
         r = CCounter(self.id)
@@ -294,7 +293,7 @@ class AWORMap(Generic[K, V]):
         return {k: v.read() for k, v in self.entries.items()}
 
     def add(self, r, key: K, value: V):
-        pdb.set_trace()
+        # pdb.set_trace()
         self.keys.add(r, key)
         if key not in self.entries:
             self.entries[key] = CCounter(id=r)
@@ -551,13 +550,13 @@ class ShoppingList:
 
     def increment_quantity(self, name):
         if name in self.items.value():
-            self.items.entries[name].inc()
+            self.items.entries[name].inc(self.id)
         else:
             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
 
     def decrement_quantity(self, name):
         if name in self.items.value():
-            self.items.entries[name].dec()
+            self.items.entries[name].dec(self.id)
         else:
             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
 
