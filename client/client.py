@@ -30,10 +30,11 @@ client_local_lists[list] = shopping_list
 def connect_to_server():
     try:
         #  Prepare our context and sockets
-        context = zmq.Context()
-        socket = context.socket(zmq.REQ)
-        socket.connect("tcp://localhost:5559")
-        return socket
+        # pdb.set_trace()
+        context0 = zmq.Context()
+        socket0 = context0.socket(zmq.REQ)
+        socket0.connect("tcp://localhost:5559")
+        return socket0
     except Exception as e:
         # Handle connection errors
         print(f"Error connecting to the server: {e}\n")
@@ -86,9 +87,16 @@ while True:
                 else:
                     print_items(list)
                     item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
-                    client_local_lists[list].item_acquired(item_acquired)
+                    client_local_lists[list].acquire_item(item_acquired)
                     print("\nItem marked as acquired successfully.")
-
+            case "4":
+                if client_local_lists[list].is_empty():
+                    print("\nYou have no items to mark as acquired.\n")
+                else:
+                    print_items(list)
+                    item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
+                    client_local_lists[list].not_acquire_item(item_acquired)
+                    print("\nItem marked as not acquired successfully.")
             case "5":
                 if client_local_lists[list].is_empty():
                     print("\nYou have no items to increment.\n")
@@ -128,6 +136,7 @@ while True:
 
             except zmq.Again:
                 print("No response from server within the timeout period.")
+                socket.close()
 
         except Exception as e:
             print(f"Error sending message to the server: {e}\n")

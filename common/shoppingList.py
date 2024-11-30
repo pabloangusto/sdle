@@ -178,51 +178,51 @@ class AWORSet(Generic[T]):
             "core": self.core.to_dict(),
             "delta": self.delta
         }
+class EWFlag(Generic[K]):
+    def __init__(self, id: K = None, context: DotContext = None):
+        self.id = id
+        self.dk = DotKernel[bool]() if context is None else DotKernel[bool]()
+        if context:
+            self.dk.Context = context
 
-# class AWORMap(Generic[K, V]):
-#     def __init__(self):
-#         self.keys = AWORSet[K]()
-#         self.entries = dict()
+    def context(self):
+        return self.dk.Context
 
-#     def value(self):
-#         return self.entries
+    def __str__(self):
+        return f"EWFlag: {self.dk}"
 
-#     def add(self, r, key: K, value: V):
-#         self.keys.add(r, key)
-#         self.entries[key] = value
-#         return self
+    def read(self):
+        return any(self.dk.Entries.values())
 
-#     def rem(self, r, key: K):
-#         self.keys.rem(r, key)
-#         if key in self.entries:
-#             del self.entries[key]
-#         return self
+    def enable(self, id):
+        self.dk = self.dk
+        self.dk.removeAll()
+        self.dk.add(id, True)
+        return self
 
-#     def merge(self, r1, other, r2):
-#         self.keys.merge(other.keys)
-#         entries = dict()
-#         # pdb.set_trace()
-#         for key in self.keys.value():
-#             if key in self.entries and key in other.entries:
-#                 entries[key] = self.entries[key] if r1 > r2 else other.entries[key]
-#             elif key in self.entries:
-#                 entries[key] = self.entries[key]
-#             elif key in other.entries:
-#                 entries[key] = other.entries[key]
+    def disable(self, id):
+        self.dk = self.dk
+        self.dk.removeAll()
+        return self
 
-#         self.entries = entries
+    def reset(self):
+        self.dk = DotKernel[bool]()
+        return self
 
-#     def from_dict(self, data):
-#         self.keys.from_dict(data.get("keys", {}))
-#         self.entries = data.get("entries", {})
-#         return self
-    
-#     def to_dict(self):
-#         return {
-#             "keys": self.keys.to_dict(),
-#             "entries": self.entries
-#         }
-    
+    def join(self, other):
+        self.dk.merge(other.dk)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "dk": self.dk.to_dict()
+        }
+
+    def from_dict(self, data):
+        self.id = data.get("id", None)
+        self.dk.from_dict(data.get("dk", {}))
+        return self
+
 class CCounter(Generic[V, K]):
     def __init__(self, id: K = None, context: DotContext = None):
         self.id = id
@@ -236,7 +236,7 @@ class CCounter(Generic[V, K]):
     def inc(self, id, val: V = 1):
         dots = set()
         base = 0
-        pdb.set_trace()
+        # pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 base = max(base, value)
@@ -249,7 +249,7 @@ class CCounter(Generic[V, K]):
     def dec(self, id, val: V = 1):
         dots = set()
         base = 0
-        pdb.set_trace()
+        # pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 base = max(base, value)
@@ -284,6 +284,49 @@ class CCounter(Generic[V, K]):
         self.dk.from_dict(data.get("dk", {}))
         return self
 
+class Item:
+    def __init__(self, id):
+        self.counter = CCounter(id=id)
+        self.flag = EWFlag(id=id)
+
+    def inc(self, id, val=1):
+        self.counter.inc(id, val)
+
+    def dec(self, id, val=1):
+        self.counter.dec(id, val)
+
+    def enable(self, id):
+        self.flag = self.flag.enable(id)
+
+    def disable(self, id):
+        self.flag = self.flag.disable(id)
+
+    def read_counter(self):
+        return self.counter.read()
+
+    def read_flag(self):
+        return self.flag.read()
+    def read(self):
+        # pdb.set_trace()
+        return {
+            "counter": self.counter.read(),
+            "flag": self.flag.read()
+        }
+    def to_dict(self):
+        return {
+            "counter": self.counter.to_dict(),
+            "flag": self.flag.to_dict()
+        }
+
+    def from_dict(self, data):
+        self.counter.from_dict(data.get("counter", {}))
+        self.flag.from_dict(data.get("flag", {}))
+        return self
+
+    def merge(self, other):
+        self.counter.join(other.counter)
+        self.flag.join(other.flag)
+
 class AWORMap(Generic[K, V]):
     def __init__(self):
         self.keys = AWORSet[K]()
@@ -296,8 +339,7 @@ class AWORMap(Generic[K, V]):
         # pdb.set_trace()
         self.keys.add(r, key)
         if key not in self.entries:
-            self.entries[key] = CCounter(id=r)
-        self.entries[key].dk.add(r, value)
+            self.entries[key] = value
         return self
 
     def rem(self, r, key: K):
@@ -313,10 +355,10 @@ class AWORMap(Generic[K, V]):
             if key in self.entries and key in other.entries:
                 if r1 > r2:
                     entries[key] = self.entries[key]
-                    entries[key].join(other.entries[key])
+                    entries[key].merge(other.entries[key])
                 else:
                     entries[key] = other.entries[key]
-                    entries[key].join(self.entries[key])
+                    entries[key].merge(self.entries[key])
             elif key in self.entries:
                 entries[key] = self.entries[key]
             elif key in other.entries:
@@ -326,7 +368,7 @@ class AWORMap(Generic[K, V]):
 
     def from_dict(self, data):
         self.keys.from_dict(data.get("keys", {}))
-        self.entries = {k: CCounter(id=k).from_dict(v) for k, v in data.get("entries", {}).items()}
+        self.entries = {k: Item(id=k).from_dict(v) for k, v in data.get("entries", {}).items()}
         return self
     
     def to_dict(self):
@@ -334,175 +376,6 @@ class AWORMap(Generic[K, V]):
             "keys": self.keys.to_dict(),
             "entries": {k: v.to_dict() for k, v in self.entries.items()}
         }
-
-# class GCounter:
-#     def __init__(self):
-#         self.counters = {}
-
-#     def inc(self, id, value = 1):
-#         if id not in self.counters:
-#             self.counters[id] = 0
-#         self.counters[id] += value
-
-#     def read(self):
-#         return sum(self.counters.values())
-
-#     def merge(self, other):
-#         for replica, value in other.counters.items():
-#             if replica in self.counters:
-#                 self.counters[replica] = max(self.counters[replica], value)
-#             else:
-#                 self.counters[replica] = value
-
-#     def __str__(self):
-#         message = ""
-#         for id, value in self.counters.items():
-#             message += f"{id},{value}."
-#         return message
-    
-#     def from_string(self, counter_str):
-#         if counter_str:
-#             for pair in counter_str.split("."):
-#                 if pair:
-#                     id, value = pair.split(",")
-#                     self.counters[id] = int(value)
-
-# class PNCounter:
-#     def __init__(self):
-#         self.increment_counter = GCounter()  
-#         self.decrement_counter = GCounter() 
-    
-#     def assign(self, id, value):
-#         for _ in range(value):
-#             self.increment_counter.inc(id)
-    
-#     def increment(self, id, value = 1):
-#         self.increment_counter.inc(id, value)
-
-#     def decrement(self, id, value = 1):
-#         if self.read() >= 1: 
-#             self.decrement_counter.inc(id, value)
-
-#     def read(self):
-#         return self.increment_counter.read() - self.decrement_counter.read()
-
-#     def merge(self, other):
-#         self.increment_counter.merge(other.increment_counter)
-#         self.decrement_counter.merge(other.decrement_counter)
-
-#     def __str__(self):
-#         return f"{self.increment_counter};{self.decrement_counter}"
-    
-#     def from_string(self, counter_str):
-#         # pdb.set_trace()
-#         increment_str, decrement_str = counter_str.split(";")
-#         self.increment_counter.from_string(increment_str)
-#         self.decrement_counter.from_string(decrement_str)
-    
-# class ShoppingList:
-
-#     def __init__(self):
-#         self.id = 0
-#         self.list = 0
-#         self.items = AWORMap[str, dict]()
-
-    
-#     def get_id(self):
-#         return self.id
-
-#     def set_id(self, id):
-#         self.id = id
-
-#     def get_list(self):
-#         return self.list
-
-#     def set_list(self, list):
-#         self.list = list
-    
-#     def get_items(self):
-#         return self.items
-    
-#     def set_items(self, items):
-#         self.items = items
-    
-    
-#     def is_empty(self):
-#         return len(self.items.value()) == 0
-    
-#     def is_equal(self, other):
-#         return self.items.to_dict() == other.items.to_dict()
-
-#     def add_item(self, name, item):
-#         item_data = {
-#             "quantity": item["quantity"],
-#         }
-#         self.items.add(self.id, name, item_data)
-    
-#     def delete_item(self, name):
-#         if name in self.items.value():
-#             self.items.rem(self.id, name)
-#         else:
-#             raise ValueError("Item does not exist in the shopping list.")
-
-#     def item_acquired(self, name):
-#         if name in self.items:
-#             self.items[name]["acquired"] = True
-#             self.items[name]["timestamp"] = timestamp
-#         else:
-#             raise ValueError("Item does not exist in the shopping list.")
-
-#     def item_not_acquired(self, name):
-#         if name in self.items:
-#             timestamp = self.increment_clock()
-#             self.items[name]["acquired"] = False
-#             self.items[name]["timestamp"] = timestamp
-#             return timestamp
-#         else:
-#             raise ValueError("Item does not exist in the shopping list.")
-
-#     def increment_quantity(self, name):
-#         if name in self.items.value():
-#             pdb.set_trace()
-#             item = self.items.value()[name]
-#             item["quantity"] += 1
-#             self.items.add(self.id, name, item)
-#         else:
-#             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
-
-    
-#     def decrement_quantity(self, name):
-#         if name in self.items.value():
-#             item = self.items.value()[name]
-#             item["quantity"] = max(item["quantity"] - 1, 0)
-#             self.items.add(self.id, name, item)
-#         else:
-#             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
-
-        
-    
-
-#     def from_dict(self, data):
-#         self.id = data.get("id", 0)
-#         self.list = data.get("list", 0)
-#         self.items.from_dict(data.get("items", {}))
-#         return self
-#     def to_dict(self):
-#         return {
-#             "id": self.id,
-#             "list": self.list,
-#             "items": self.items.to_dict() 
-#         }
-    
-#     def __str__(self):
-#         result = "\n> Shopping List Items:\n"
-#         for name, item in self.items.value().items():
-#             result += f" - Name: {name}, Counter: {item['quantity']}\n"
-#         return result
-    
-#     def merge(self, other):
-#         self.items.merge(self.id, other.items, other.id)
-
-
     
 
 class ShoppingList:
@@ -510,7 +383,7 @@ class ShoppingList:
     def __init__(self):
         self.id = 0
         self.list = 0
-        self.items = AWORMap[str, CCounter]()
+        self.items = AWORMap[str, Item]()
 
     def get_id(self):
         return self.id
@@ -538,7 +411,9 @@ class ShoppingList:
 
     def add_item(self, name, item):
         if name not in self.items.value():
-            self.items.add(self.id, name, item["quantity"])
+            i = Item(id=self.id)
+            i.counter.inc(self.id, item["quantity"])
+            self.items.add(self.id, name, i)
         # pdb.set_trace()
         # self.items.entries[name].inc(item["quantity"])
     
@@ -560,6 +435,18 @@ class ShoppingList:
         else:
             raise ValueError(f"Item '{name}' does not exist in the shopping list.")
 
+    def acquire_item(self, name):
+        if name in self.items.value():
+            self.items.entries[name].enable(self.id)
+        else:
+            raise ValueError(f"Item '{name}' does not exist in the shopping list.")
+
+    def not_acquire_item(self, name):
+        if name in self.items.value():
+            self.items.entries[name].disable(self.id)
+        else:
+            raise ValueError(f"Item '{name}' does not exist in the shopping list.")
+
     def from_dict(self, data):
         self.id = data.get("id", 0)
         self.list = data.get("list", 0)
@@ -576,7 +463,7 @@ class ShoppingList:
     def __str__(self):
         result = "\n> Shopping List Items:\n"
         for name, item in self.items.value().items():
-            result += f" - Name: {name}, Counter: {item}\n"
+            result += f" - Name: {name}, Item: {item}\n"
         return result
     
     def merge(self, other):
