@@ -18,13 +18,17 @@ user = input("> Username: ")
 print("\nPlease enter listID. ")
 list = input("> ListID: ")
 
-# Create ShoppingList object
-shopping_list = ShoppingList()
-shopping_list.set_id(user)
-shopping_list.set_list(list)
+
+load_client_state(user)
+
+if list not in client_local_lists:
+    shopping_list = ShoppingList()
+    shopping_list.set_id(user)
+    shopping_list.set_list(list)
 
 
-client_local_lists[list] = shopping_list
+    client_local_lists[list] = shopping_list
+
 
 
 def connect_to_server():
@@ -113,6 +117,8 @@ while True:
                     item_to_decrement = input("\n> Enter the name of the item to decrement: ")
                     client_local_lists[list].decrement_quantity(item_to_decrement)
                     print("\nItem quantity decremented successfully.")
+
+    save_client_state(user)
 
     # Synchronize Shopping List
     socket = connect_to_server()

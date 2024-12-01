@@ -461,9 +461,10 @@ class ShoppingList:
         }
     
     def __str__(self):
+        # pdb.set_trace()
         result = "\n> Shopping List Items:\n"
         for name, item in self.items.value().items():
-            result += f" - Name: {name}, Item: {item}\n"
+            result += f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n"
         return result
     
     def merge(self, other):

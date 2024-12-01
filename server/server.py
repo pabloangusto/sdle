@@ -19,9 +19,10 @@ N=2 # Length of preference list
 
 VN=3 # Number of virtual nodes
 
-active_lists = {}
 active_nodes = []
 active_nodes.append({"id": int(id), "port": int(port)})
+
+load_server_state(id)
 
 def hash_list_id(list_id):
     print("Hashing list id", hashlib.md5(list_id.encode()))
@@ -52,7 +53,7 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
 def propagate_update(preference_list, response):
     print("Propagating update")
     replicated = 1
-    while replicated != N:
+    while replicated != min(N, len(preference_list)):
         for p in preference_list:
             #pdb.set_trace()
             if p != port:
@@ -65,17 +66,18 @@ def propagate_update(preference_list, response):
                 try:
                     ack = socket.recv()
                     n_shopping_list = ShoppingList().from_dict(json.loads(ack))
-                    if active_lists[n_shopping_list.list].is_equal(n_shopping_list):
+                    if server_local_lists[n_shopping_list.list].is_equal(n_shopping_list):
                         replicated += 1
                         print(f"Received ack from server {p}: {ack} {replicated}")
                         if replicated == N:
                             break
                     else:
-                        active_lists[n_shopping_list.list].merge(n_shopping_list)
+                        server_local_lists[n_shopping_list.list].merge(n_shopping_list)
                         replicated = 2
                 except zmq.Again:
                     print(f"No ack from server {p} within the timeout period. Trying next node.")
-    print(f"EXITTTTTTT")
+    save_server_state(id)
+
 
 def request_received(socket, message_multipart):
 
@@ -102,22 +104,22 @@ def request_received(socket, message_multipart):
     # pdb.set_trace()
     print(preference_list)
     if port in preference_list:
-        if client_shopping_list.list not in active_lists:
-            active_lists[client_shopping_list.list] = client_shopping_list
-            response = active_lists[client_shopping_list.list].to_dict()
+        if client_shopping_list.list not in server_local_lists:
+            server_local_lists[client_shopping_list.list] = client_shopping_list
+            response = server_local_lists[client_shopping_list.list].to_dict()
             print("Sending not changed message to server")
             propagate_update(preference_list, json.dumps(client_shopping_list.to_dict()))
             # pdb.set_trace()
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
         else:
-            active_lists[client_shopping_list.list].merge(client_shopping_list)
-            response = active_lists[client_shopping_list.list].to_dict()
+            server_local_lists[client_shopping_list.list].merge(client_shopping_list)
+            response = server_local_lists[client_shopping_list.list].to_dict()
             propagate_update(preference_list, json.dumps(response))
             print("Sending message to server: " + json.dumps(response))
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
-            print(active_lists[client_shopping_list.list])
+            print(server_local_lists[client_shopping_list.list])
     else:
         print("Forwarding request")
         forward_request(preference_list, client_shopping_list, message_multipart)
@@ -168,13 +170,14 @@ def node_request():
         if len(message) == 1:
             
             client_shopping_list = ShoppingList().from_dict(json.loads(message[0].decode()))
-            if client_shopping_list.list not in active_lists:
-                active_lists[client_shopping_list.list] = client_shopping_list
+            if client_shopping_list.list not in server_local_lists:
+                server_local_lists[client_shopping_list.list] = client_shopping_list
             else:
-                active_lists[client_shopping_list.list].merge(client_shopping_list)
+                server_local_lists[client_shopping_list.list].merge(client_shopping_list)
 
-            response = active_lists[client_shopping_list.list].to_dict()
+            response = server_local_lists[client_shopping_list.list].to_dict()
             socket3.send_string(json.dumps(response))
+            save_server_state(id)
 
 
         else:

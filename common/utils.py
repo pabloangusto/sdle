@@ -1,5 +1,8 @@
 from os.path import dirname, abspath
 import pdb
+import json
+import os
+from common.shoppingList import ShoppingList
 parent_dir = dirname(dirname(abspath(__file__)))
 
 
@@ -11,9 +14,6 @@ parent_dir = dirname(dirname(abspath(__file__)))
 server_local_lists = {}
 client_local_lists = {}
 
-
-# Active shopping lists
-active_lists = []
 
 
 def print_user_list(list_id):
@@ -34,13 +34,45 @@ def show_menu(list_id):
 
     return action
 
-# def print_items(list_id):
-#     print(f"\n> {list_id} Shopping List Items:")
-#     # pdb.set_trace()
-#     for name, item in client_local_lists[list_id].items.value().items():
-#         print(f" - Name: {name}, Quantity: {item['quantity']}, Read Count: {item['ccounter'].read()}")
-
 def print_items(list_id):
     print(f"\n> {list_id} Shopping List Items:")
     for name, item in client_local_lists[list_id].items.value().items():
             print(f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}")
+
+
+def save_client_state(id):
+    # Create directory if it doesn't exist
+    os.makedirs(parent_dir + "/data/client", exist_ok=True)
+    with open(parent_dir + "/data/client/"+id+".json", "w") as f:
+        json.dump({list_id: list_data.to_dict() for list_id, list_data in client_local_lists.items()}, f)
+
+def load_client_state(id):
+    try:
+        with open(parent_dir + "/data/client/"+id+".json", "r") as f:
+            data = json.load(f)
+            for list_id, list_data in data.items():
+                client_local_lists[list_id] = ShoppingList()
+                client_local_lists[list_id].from_dict(list_data)
+    except Exception as e:
+        print(f"Error loading state: {e}\n")
+        return False
+    return True
+
+def save_server_state(id):
+    # Create directory if it doesn't exist
+    os.makedirs(parent_dir + "/data/server", exist_ok=True)
+    # pdb.set_trace()
+    with open(parent_dir + "/data/server/"+str(id)+".json", "w") as f:
+        json.dump({list_id: list_data.to_dict() for list_id, list_data in server_local_lists.items()}, f)
+
+def load_server_state(id):
+    try:
+        with open(parent_dir + "/data/server/"+str(id)+".json", "r") as f:
+            data = json.load(f)
+            for list_id, list_data in data.items():
+                server_local_lists[list_id] = ShoppingList()
+                server_local_lists[list_id].from_dict(list_data)
+    except Exception as e:
+        print(f"Error loading state: {e}\n")
+        return False
+    return True
