@@ -28,7 +28,7 @@ class Helpers:
 
 class DotContext:
     def __init__(self):
-        self.version_vector = {} # actor -> version
+        self.version_vector = {} 
         self.dot_cloud = set() 
 
     def contains(self, r, n):

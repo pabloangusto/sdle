@@ -4,12 +4,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import json
 import zmq
-from common.utils import *
 from common.shoppingList import *
 import hashlib
 import threading
 import time
 import pdb
+from common.shoppingList import *
+
+parent_dir = dirname(dirname(abspath(__file__)))
 
 N=2 # Length of preference list
 
@@ -188,7 +190,7 @@ def node_request():
 
             response = server_local_lists[client_shopping_list.list].to_dict()
             socket3.send_string(json.dumps(response))
-            
+
             save_server_state(id)
 
 
