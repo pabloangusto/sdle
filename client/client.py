@@ -1,20 +1,77 @@
 import sys
 import os
 import json
+from os.path import dirname, abspath
+import zmq
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import zmq
-from common.utils import *
 from common.shoppingList import *
 
+parent_dir = dirname(dirname(abspath(__file__)))
+
+
+
+def save_client_state(id):
+    # Create directory if it doesn't exist
+    os.makedirs(parent_dir + "/data/client", exist_ok=True)
+    with open(parent_dir + "/data/client/"+id+".json", "w") as f:
+        json.dump({list_id: list_data.to_dict() for list_id, list_data in client_local_lists.items()}, f)
+
+def load_client_state(id):
+    try:
+        with open(parent_dir + "/data/client/"+id+".json", "r") as f:
+            data = json.load(f)
+            for list_id, list_data in data.items():
+                client_local_lists[list_id] = ShoppingList()
+                client_local_lists[list_id].from_dict(list_data)
+    except Exception as e:
+        print(f"Error loading state: {e}\n")
+        return False
+    return True
+
+def show_menu(list_id):
+    print(client_local_lists[list_id])
+
+    print("\n Choose one action:")
+    print(" 0 - Syncronize Shopping List")
+    print(" 1 - Modify Shopping List")
+    action = input("Action: ")   
+
+    return action
+
+def show_modifiers():
+    print("\nChoose one option:")
+    print(" 1 - Add item")
+    print(" 2 - Delete item")
+    print(" 3 - Item acquired")
+    print(" 4 - Item not acquired")
+    print(" 5 - Increment quantity")
+    print(" 6 - Decrement quantity")
+    operation = input("Option: ")
+    return operation
+
+def connect_to_server():
+    try:
+        #  Prepare our context and sockets
+        # pdb.set_trace()
+        context0 = zmq.Context()
+        socket0 = context0.socket(zmq.REQ)
+        socket0.connect("tcp://localhost:5559")
+        return socket0
+    except Exception as e:
+        # Handle connection errors
+        print(f"Error connecting to the server: {e}\n")
+        return None
 
 
 
 
-# choose a list ID to connect
+client_local_lists = {}
+
+
 print("\nPlease enter your username. ")
 user = input("> Username: ")
-# choose a list ID to connect
+
 print("\nPlease enter listID. ")
 list = input("> ListID: ")
 
@@ -31,19 +88,6 @@ if list not in client_local_lists:
 
 
 
-def connect_to_server():
-    try:
-        #  Prepare our context and sockets
-        # pdb.set_trace()
-        context0 = zmq.Context()
-        socket0 = context0.socket(zmq.REQ)
-        socket0.connect("tcp://localhost:5559")
-        return socket0
-    except Exception as e:
-        # Handle connection errors
-        print(f"Error connecting to the server: {e}\n")
-        return None
-
 while True:
 
     # Show user list content
@@ -52,14 +96,7 @@ while True:
     # Modify Shopping List
     if operation == "1":
 
-        print("\nChoose one option:")
-        print(" 1 - Add item")
-        print(" 2 - Delete item")
-        print(" 3 - Item acquired")
-        print(" 4 - Item not acquired")
-        print(" 5 - Increment quantity")
-        print(" 6 - Decrement quantity")
-        operation = input("Option: ")
+        operation = show_modifiers()
 
         # Add item
         match operation:
@@ -78,45 +115,30 @@ while True:
                     print("Quantity must be an integer.")
 
             case "2":
-                if client_local_lists[list].is_empty():
-                    print("\nYou have no items to delete.\n")
-                else:
-                    print_items(list)
-                    item_to_remove = input("\n> Enter the name of the item to remove: ")
-                    client_local_lists[list].delete_item(item_to_remove)
-                    print("\nItem removed successfully.")
+                print(client_local_lists[list])
+                item_to_remove = input("\n> Enter the name of the item to remove: ")
+                client_local_lists[list].delete_item(item_to_remove)
+                print("\nItem removed successfully.")
             case "3":
-                if client_local_lists[list].is_empty():
-                    print("\nYou have no items to mark as acquired.\n")
-                else:
-                    print_items(list)
-                    item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
-                    client_local_lists[list].acquire_item(item_acquired)
-                    print("\nItem marked as acquired successfully.")
+                print(client_local_lists[list])
+                item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
+                client_local_lists[list].acquire_item(item_acquired)
+                print("\nItem marked as acquired successfully.")
             case "4":
-                if client_local_lists[list].is_empty():
-                    print("\nYou have no items to mark as acquired.\n")
-                else:
-                    print_items(list)
-                    item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
-                    client_local_lists[list].not_acquire_item(item_acquired)
-                    print("\nItem marked as not acquired successfully.")
+                print(client_local_lists[list])
+                item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
+                client_local_lists[list].not_acquire_item(item_acquired)
+                print("\nItem marked as not acquired successfully.")
             case "5":
-                if client_local_lists[list].is_empty():
-                    print("\nYou have no items to increment.\n")
-                else:
-                    print_items(list)
-                    item_to_increment = input("\n> Enter the name of the item to increment: ")
-                    client_local_lists[list].increment_quantity(item_to_increment)
-                    print("\nItem quantity incremented successfully.")
+                print(client_local_lists[list])
+                item_to_increment = input("\n> Enter the name of the item to increment: ")
+                client_local_lists[list].increment_quantity(item_to_increment)
+                print("\nItem quantity incremented successfully.")
             case "6":
-                if client_local_lists[list].is_empty():
-                    print("\nYou have no items to decrement.\n")
-                else:
-                    print_items(list)
-                    item_to_decrement = input("\n> Enter the name of the item to decrement: ")
-                    client_local_lists[list].decrement_quantity(item_to_decrement)
-                    print("\nItem quantity decremented successfully.")
+                print(client_local_lists[list])
+                item_to_decrement = input("\n> Enter the name of the item to decrement: ")
+                client_local_lists[list].decrement_quantity(item_to_decrement)
+                print("\nItem quantity decremented successfully.")
 
     save_client_state(user)
 
@@ -139,6 +161,8 @@ while True:
                 print("Message received from server")
                 server_shopping_list = ShoppingList().from_dict(json.loads(response))
                 client_local_lists[list].items = server_shopping_list.items
+                save_client_state(user)
+
 
             except zmq.Again:
                 print("No response from server within the timeout period.")

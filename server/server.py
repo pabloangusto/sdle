@@ -11,18 +11,30 @@ import threading
 import time
 import pdb
 
-id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
-port = 5500 + id
-
-
 N=2 # Length of preference list
 
 VN=3 # Number of virtual nodes
 
-active_nodes = []
-active_nodes.append({"id": int(id), "port": int(port)})
 
-load_server_state(id)
+
+def save_server_state(id):
+    # Create directory if it doesn't exist
+    os.makedirs(parent_dir + "/data/server", exist_ok=True)
+    # pdb.set_trace()
+    with open(parent_dir + "/data/server/"+str(id)+".json", "w") as f:
+        json.dump({list_id: list_data.to_dict() for list_id, list_data in server_local_lists.items()}, f)
+
+def load_server_state(id):
+    try:
+        with open(parent_dir + "/data/server/"+str(id)+".json", "r") as f:
+            data = json.load(f)
+            for list_id, list_data in data.items():
+                server_local_lists[list_id] = ShoppingList()
+                server_local_lists[list_id].from_dict(list_data)
+    except Exception as e:
+        print(f"Error loading state: {e}\n")
+        return False
+    return True
 
 def hash_list_id(list_id):
     print("Hashing list id", hashlib.md5(list_id.encode()))
@@ -165,7 +177,6 @@ def node_request():
     socket3.bind("tcp://localhost:"+str(port))
     while True:
         message = socket3.recv_multipart()
-        print(f"Received request: {message}")
         # pdb.set_trace()
         if len(message) == 1:
             
@@ -177,6 +188,7 @@ def node_request():
 
             response = server_local_lists[client_shopping_list.list].to_dict()
             socket3.send_string(json.dumps(response))
+            
             save_server_state(id)
 
 
@@ -185,6 +197,15 @@ def node_request():
             update_thread = threading.Thread(target=request_received, args=(socket, message))
             update_thread.start()
         # request_received(socket, message)
+
+id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+port = 5500 + id
+
+
+active_nodes = []
+active_nodes.append({"id": int(id), "port": int(port)})
+
+load_server_state(id)
 
 context = zmq.Context()
 socket = context.socket(zmq.DEALER)

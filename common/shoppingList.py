@@ -397,12 +397,6 @@ class ShoppingList:
     def set_list(self, list):
         self.list = list
     
-    def get_items(self):
-        return self.items
-    
-    def set_items(self, items):
-        self.items = items
-    
     def is_empty(self):
         return len(self.items.value()) == 0
     
@@ -415,8 +409,9 @@ class ShoppingList:
             i.counter.inc(self.id, item["quantity"])
             self.items.add(self.id, name, i)
         # pdb.set_trace()
-        # self.items.entries[name].inc(item["quantity"])
-    
+        else:
+            raise ValueError("Item already exists in the shopping list.")
+            
     def delete_item(self, name):
         if name in self.items.value():
             self.items.rem(self.id, name)
@@ -462,9 +457,14 @@ class ShoppingList:
     
     def __str__(self):
         # pdb.set_trace()
-        result = "\n> Shopping List Items:\n"
-        for name, item in self.items.value().items():
-            result += f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n"
+        result ="\n_________________________________\n"
+        result += "\n> Shopping List Items:\n\n"
+        if self.is_empty():
+            result += "The list is empty.\n"
+        else:   
+            for name, item in self.items.value().items():
+                result += f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n"
+        result +="\n_________________________________"
         return result
     
     def merge(self, other):
