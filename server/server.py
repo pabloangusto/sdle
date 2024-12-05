@@ -110,9 +110,17 @@ def request_received(socket, message_multipart):
             else:
                 hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5((str(n['id']) + str(i)).encode()).hexdigest(), 16)})
     #pdb.set_trace() 
-    sorted_nodes = sorted(hash_nodes, key=lambda x: (x['h'] < hash_list, x['h']))
-    print(sorted_nodes)
-    sorted_nodes = sorted_nodes[:N]
+    # sorted_nodes = sorted(hash_nodes, key=lambda x: (x['h'] < hash_list, x['h']))
+    # print(sorted_nodes)
+    unique_ids = set()
+    sorted_nodes = []
+    for node in sorted(hash_nodes, key=lambda x: (x['h'] < hash_list, x['h'])):
+        if node['id'] not in unique_ids:
+            unique_ids.add(node['id'])
+            sorted_nodes.append(node)
+            if len(sorted_nodes) == N:
+                break
+    # sorted_nodes = sorted_nodes[:N]
     preference_list = []
     for n in sorted_nodes:
         preference_list.append(n['port'])
