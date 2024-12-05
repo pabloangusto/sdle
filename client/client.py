@@ -1,3 +1,4 @@
+import hashlib
 import sys
 import os
 import json
@@ -74,7 +75,7 @@ user = input("> Username: ")
 
 print("\nPlease enter listID. ")
 list = input("> ListID: ")
-
+print("Hashing list id", int(hashlib.md5(list.encode()).hexdigest(), 16))
 
 load_client_state(user)
 

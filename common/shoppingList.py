@@ -1,6 +1,5 @@
 import pdb
 from typing import TypeVar, Generic
-import json
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -28,8 +27,8 @@ class Helpers:
 
 class DotContext:
     def __init__(self):
-        self.version_vector = {} 
-        self.dot_cloud = set() 
+        self.version_vector = {} # {actor: version}
+        self.dot_cloud = set() # {(actor, version)}
 
     def contains(self, r, n):
         return self.version_vector.get(r, 0) >= n or (r, n) in self.dot_cloud
@@ -77,8 +76,8 @@ class DotContext:
 
 class DotKernel(Generic[T]):
     def __init__(self):
-        self.Context = DotContext() #vector_version
-        self.Entries = {}       #dot -> value
+        self.Context = DotContext() # DotContext
+        self.Entries = {}        # {dot: item_name}
 
     def values(self):
         return list(self.Entries.values())
@@ -144,7 +143,7 @@ class DotKernel(Generic[T]):
         }
 class AWORSet(Generic[T]):
     def __init__(self):
-        self.core = DotKernel[T]()
+        self.core = DotKernel[T]() # DotKernel
         self.delta = None
 
     def value(self):
@@ -286,8 +285,8 @@ class CCounter(Generic[V, K]):
 
 class Item:
     def __init__(self, id):
-        self.counter = CCounter(id=id)
-        self.flag = EWFlag(id=id)
+        self.counter = CCounter(id=id) # CCounter
+        self.flag = EWFlag(id=id) # EWFlag
 
     def inc(self, id, val=1):
         self.counter.inc(id, val)
@@ -329,8 +328,8 @@ class Item:
 
 class AWORMap(Generic[K, V]):
     def __init__(self):
-        self.keys = AWORSet[K]()
-        self.entries = dict()
+        self.keys = AWORSet[K]() # AWORSet
+        self.entries = dict() # {item_name: Item}
 
     def value(self):
         return {k: v.read() for k, v in self.entries.items()}

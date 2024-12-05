@@ -9,8 +9,9 @@ import hashlib
 import threading
 import time
 import pdb
-from common.shoppingList import *
+from os.path import dirname, abspath
 
+server_local_lists = {}
 parent_dir = dirname(dirname(abspath(__file__)))
 
 N=2 # Length of preference list
@@ -39,7 +40,7 @@ def load_server_state(id):
     return True
 
 def hash_list_id(list_id):
-    print("Hashing list id", hashlib.md5(list_id.encode()))
+    print("Hashing list id", int(hashlib.md5(list_id.encode()).hexdigest(), 16))
     return int(hashlib.md5(list_id.encode()).hexdigest(), 16)
 
 def forward_request(preference_list, client_shopping_list, message_multipart):
@@ -51,7 +52,7 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
         # pdb.set_trace()
             socket = context.socket(zmq.REQ)
             socket.connect(f"tcp://localhost:{p}")
-            print(f"Sending message to server: {p} {message}")
+            print(f"Sending message to server: {p}")
             socket.send_multipart([message_multipart[0], b'', message.encode() ])
             socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
             try:
@@ -74,7 +75,7 @@ def propagate_update(preference_list, response):
                 context = zmq.Context()
                 socket = context.socket(zmq.REQ)
                 socket.connect(f"tcp://localhost:{p}")
-                print(f"Sending message to server: {p} {response}")
+                print(f"Sending message to server: {p} ")
                 socket.send_string(response)
                 socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
                 try:
@@ -108,20 +109,19 @@ def request_received(socket, message_multipart):
                 hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5(str(n['id']).encode()).hexdigest(), 16)})
             else:
                 hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5((str(n['id']) + str(i)).encode()).hexdigest(), 16)})
-    # pdb.set_trace() 
-    sorted_nodes = sorted(hash_nodes, key=lambda x: x['h'], reverse=True)
-    top_nodes = [node for node in sorted_nodes if node['h'] > hash_list][:N]
+    #pdb.set_trace() 
+    sorted_nodes = sorted(hash_nodes, key=lambda x: (x['h'] < hash_list, x['h']))
+    print(sorted_nodes)
+    sorted_nodes = sorted_nodes[:N]
     preference_list = []
-    #pdb.set_trace()
-    for n in top_nodes:
+    for n in sorted_nodes:
         preference_list.append(n['port'])
-    # pdb.set_trace()
     print(preference_list)
     if port in preference_list:
         if client_shopping_list.list not in server_local_lists:
             server_local_lists[client_shopping_list.list] = client_shopping_list
             response = server_local_lists[client_shopping_list.list].to_dict()
-            print("Sending not changed message to server")
+            print("Sending not changed message to client")
             propagate_update(preference_list, json.dumps(client_shopping_list.to_dict()))
             # pdb.set_trace()
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
@@ -130,7 +130,7 @@ def request_received(socket, message_multipart):
             server_local_lists[client_shopping_list.list].merge(client_shopping_list)
             response = server_local_lists[client_shopping_list.list].to_dict()
             propagate_update(preference_list, json.dumps(response))
-            print("Sending message to server: " + json.dumps(response))
+            print("Sending message to client")
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
             print(server_local_lists[client_shopping_list.list])
@@ -203,6 +203,11 @@ def node_request():
 id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 port = 5500 + id
 
+for i in range(VN):
+    if i == 0:
+        print("Hashing node id", int(hashlib.md5(str(id).encode()).hexdigest(), 16))
+    else:
+        print("Hashing node id", int(hashlib.md5((str(id) + str(i)).encode()).hexdigest(), 16))
 
 active_nodes = []
 active_nodes.append({"id": int(id), "port": int(port)})
@@ -213,12 +218,10 @@ context = zmq.Context()
 socket = context.socket(zmq.DEALER)
 socket.connect("tcp://localhost:5560")
 print("Server started")
-# update_thread = threading.Thread(target=send_updates)
-# update_thread.start()
+
 update_thread = threading.Thread(target=seeds)
 update_thread.start()
-# update_thread2 = threading.Thread(target=listen_for_updates)
-# update_thread2.start()
+
 update_thread = threading.Thread(target=node_request)
 update_thread.start()
 while True:
