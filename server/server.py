@@ -53,6 +53,7 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
             socket = context.socket(zmq.REQ)
             socket.connect(f"tcp://localhost:{p}")
             print(f"Sending message to server: {p}")
+            # pdb.set_trace()
             socket.send_multipart([message_multipart[0], b'', message.encode() ])
             socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
             try:
@@ -60,7 +61,6 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
                 print(f"Received response: {response}")
                 break
             except zmq.Again:
-                active_nodes.pop(str(p))
                 print(f"No response from server {p} within the timeout period. Trying next node.")
 
 
@@ -68,7 +68,7 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
 def propagate_update(preference_list, response):
     print("Propagating update")
     replicated = 1
-    while replicated != min(N, len(preference_list)):
+    while replicated < min(N, len(preference_list)):
         for p in preference_list:
             #pdb.set_trace()
             if p != port:
@@ -79,25 +79,25 @@ def propagate_update(preference_list, response):
                 socket.send_string(response)
                 socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
                 try:
+                    print("Esperando respuesta del servidor")
                     ack = socket.recv()
+                    print(f"Received ack from server {p}: {ack}")
                     n_shopping_list = ShoppingList().from_dict(json.loads(ack))
-                    if server_local_lists[n_shopping_list.list].is_equal(n_shopping_list):
-                        replicated += 1
-                        print(f"Received ack from server {p}: {ack} {replicated}")
-                        if replicated == N:
-                            break
-                    else:
+                    if not server_local_lists[n_shopping_list.list].is_equal(n_shopping_list):
                         server_local_lists[n_shopping_list.list].merge(n_shopping_list)
-                        replicated = 2
+                        replicated = 1
                 except zmq.Again:
                     print(f"No ack from server {p} within the timeout period. Trying next node.")
+                replicated += 1
+                if replicated == N:
+                    break
     save_server_state(id)
 
 
 def request_received(socket, message_multipart):
 
     message = message_multipart[2]
-    # print("Received request", message)
+    print("Received request", message)
 
     client_shopping_list = ShoppingList().from_dict(json.loads(message))
     print(client_shopping_list)
@@ -198,7 +198,7 @@ def node_request():
 
             response = server_local_lists[client_shopping_list.list].to_dict()
             socket3.send_string(json.dumps(response))
-
+            print(server_local_lists[client_shopping_list.list])
             save_server_state(id)
 
 
