@@ -234,16 +234,18 @@ class CCounter(Generic[V, K]):
 
     def inc(self, id, val: V = 1):
         dots = set()
-        base = 0
+        base = self.dk.Entries[id] if id in self.dk.Entries else 0
         # pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 base = max(base, value)
+                # base = value
                 dots.add(dot)
         for dot in dots:
             self.dk.merge(self.dk)
             del self.dk.Entries[dot]
         self.dk.add(id, base + val)
+        # pdb.set_trace()
 
     def dec(self, id, val: V = 1):
         dots = set()
@@ -348,16 +350,26 @@ class AWORMap(Generic[K, V]):
         return self
 
     def merge(self, r1, other, r2):
+        # pdb.set_trace()
+
         self.keys.merge(other.keys)
         entries = dict()
+        # pdb.set_trace()
+
         for key in self.keys.value():
+            
             if key in self.entries and key in other.entries:
-                if r1 > r2:
+                # pdb.set_trace()
+                v = next((v for k, v in self.keys.core.Entries.items() if v == key), None)
+                v2 = next((v for k, v in other.keys.core.Entries.items() if v == key), None)
+                if v > v2:
+                    entries[key] = self.entries[key]
+                elif v < v2:
+                    entries[key] = other.entries[key]
+                else:
+                # if r1 > r2:
                     entries[key] = self.entries[key]
                     entries[key].merge(other.entries[key])
-                else:
-                    entries[key] = other.entries[key]
-                    entries[key].merge(self.entries[key])
             elif key in self.entries:
                 entries[key] = self.entries[key]
             elif key in other.entries:
