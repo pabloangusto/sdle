@@ -35,7 +35,7 @@ def load_server_state(id):
                 server_local_lists[list_id] = ShoppingList()
                 server_local_lists[list_id].from_dict(list_data)
     except Exception as e:
-        print(f"Error loading state: {e}\n")
+        # print(f"Error loading state: {e}\n")
         return False
     return True
 
@@ -79,7 +79,7 @@ def propagate_update(preference_list, response):
                 socket.send_string(response)
                 socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
                 try:
-                    print("Esperando respuesta del servidor")
+                    # print("Esperando respuesta del servidor")
                     ack = socket.recv()
                     print(f"Received ack from server {p}: {ack}")
                     n_shopping_list = ShoppingList().from_dict(json.loads(ack))
@@ -97,10 +97,10 @@ def propagate_update(preference_list, response):
 def request_received(socket, message_multipart):
 
     message = message_multipart[2]
-    print("Received request", message)
+    print("Received request")
 
     client_shopping_list = ShoppingList().from_dict(json.loads(message))
-    print(client_shopping_list)
+    # print(client_shopping_list)
     hash_list = hash_list_id(client_shopping_list.list)
     hash_nodes = []
     for i in range(VN):
@@ -122,7 +122,7 @@ def request_received(socket, message_multipart):
     preference_list = []
     for n in sorted_nodes:
         preference_list.append(n['port'])
-    print(preference_list)
+    print("Preference list: ", preference_list)
     if port in preference_list:
         if client_shopping_list.list not in server_local_lists:
             server_local_lists[client_shopping_list.list] = client_shopping_list
@@ -141,7 +141,6 @@ def request_received(socket, message_multipart):
 
             print(server_local_lists[client_shopping_list.list])
     else:
-        print("Forwarding request")
         forward_request(preference_list, client_shopping_list, message_multipart)
 
 

@@ -26,22 +26,22 @@ def load_client_state(id):
                 client_local_lists[list_id] = ShoppingList()
                 client_local_lists[list_id].from_dict(list_data)
     except Exception as e:
-        print(f"Error loading state: {e}\n")
+        # print(f"Error loading state: {e}\n")
         return False
     return True
 
 def show_menu(list_id):
     print(client_local_lists[list_id])
 
-    print("\n Choose one action:")
-    print(" 0 - Syncronize Shopping List")
-    print(" 1 - Modify Shopping List")
+    print("\n Choose one:")
+    print(" 0 - Syncronize List")
+    print(" 1 - Modify List")
     action = input("Action: ")   
 
     return action
 
 def show_modifiers():
-    print("\nChoose one option:")
+    print("\nChoose one:")
     print(" 1 - Add item")
     print(" 2 - Delete item")
     print(" 3 - Item acquired")
@@ -51,23 +51,26 @@ def show_modifiers():
     operation = input("Option: ")
     return operation
 
-def connect_to_server():
+
+def connect_to_server(context0):
+    socket0 = None
     try:
-        #  Prepare our context and sockets
-        # pdb.set_trace()
-        context0 = zmq.Context()
+        # Prepare our socket
         socket0 = context0.socket(zmq.REQ)
         socket0.connect("tcp://localhost:5559")
         return socket0
     except Exception as e:
         # Handle connection errors
         print(f"Error connecting to the server: {e}\n")
+        if socket0:
+            socket0.close()
         return None
 
 
 
 
 client_local_lists = {}
+context = zmq.Context()
 
 
 print("\nPlease enter your username. ")
@@ -144,14 +147,13 @@ while True:
     save_client_state(user)
 
     # Synchronize Shopping List
-    socket = connect_to_server()
-    print("Socket: ", socket)
+    socket = connect_to_server(context)
     if socket is not None:
         try:
             # Send message to server
             # pdb.set_trace()
             message = json.dumps(client_local_lists[list].to_dict())
-            print("Sending message to server: " + message)
+            # print("Sending message to server")
             socket.send_string(message)
             
             # Set a timeout for receiving the response
@@ -163,14 +165,14 @@ while True:
                 server_shopping_list = ShoppingList().from_dict(json.loads(response))
                 client_local_lists[list].items = server_shopping_list.items
                 save_client_state(user)
-
+                socket.close()
 
             except zmq.Again:
-                print("No response from server within the timeout period.")
+                # print("No response from server within the timeout period.")
                 socket.close()
 
         except Exception as e:
-            print(f"Error sending message to the server: {e}\n")
+            # print(f"Error sending message to the server: {e}\n")
             socket.close()
 
         
