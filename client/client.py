@@ -22,6 +22,7 @@ def load_client_state(id):
     try:
         with open(parent_dir + "/data/client/"+id+".json", "r") as f:
             data = json.load(f)
+
             for list_id, list_data in data.items():
                 client_local_lists[list_id] = ShoppingList()
                 client_local_lists[list_id].from_dict(list_data)
@@ -36,6 +37,8 @@ def show_menu(list_id):
     print("\n Choose one:")
     print(" 0 - Syncronize List")
     print(" 1 - Modify List")
+    print(" 2 - Delete List")
+    print(" 3 - Exit")
     action = input("Action: ")   
 
     return action
@@ -76,104 +79,121 @@ context = zmq.Context()
 print("\nPlease enter your username. ")
 user = input("> Username: ")
 
-print("\nPlease enter listID. ")
-list = input("> ListID: ")
-print("Hashing list id", int(hashlib.md5(list.encode()).hexdigest(), 16))
-
 load_client_state(user)
 
-if list not in client_local_lists:
-    shopping_list = ShoppingList()
-    shopping_list.set_id(user)
-    shopping_list.set_list(list)
-
-
-    client_local_lists[list] = shopping_list
-
-
-
 while True:
+    print("\nPlease enter listID. ")
+    list = input("> ListID: ")
+    print("Hashing list id", int(hashlib.md5(list.encode()).hexdigest(), 16))
 
-    # Show user list content
-    operation = show_menu(list)
-        
-    # Modify Shopping List
-    if operation == "1":
+    if list not in client_local_lists:
+        shopping_list = ShoppingList()
+        shopping_list.set_id(user)
+        shopping_list.set_list(list)
 
-        operation = show_modifiers()
 
-        # Add item
-        match operation:
-            case "1":
-                item = {}
-                name = input("\n> Enter item name: ")
-                quantity = input("> Enter item quantity: ")
+        client_local_lists[list] = shopping_list
 
-                try:
-                    item["quantity"] = int(quantity)
-                    item["acquired"] = False
-                    client_local_lists[list].add_item(name, item)
-                    print("\nItem added successfully.")
 
-                except ValueError:
-                    print("Quantity must be an integer.")
+    while True:
 
-            case "2":
-                print(client_local_lists[list])
-                item_to_remove = input("\n> Enter the name of the item to remove: ")
-                client_local_lists[list].delete_item(item_to_remove)
-                print("\nItem removed successfully.")
-            case "3":
-                print(client_local_lists[list])
-                item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
-                client_local_lists[list].acquire_item(item_acquired)
-                print("\nItem marked as acquired successfully.")
-            case "4":
-                print(client_local_lists[list])
-                item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
-                client_local_lists[list].not_acquire_item(item_acquired)
-                print("\nItem marked as not acquired successfully.")
-            case "5":
-                print(client_local_lists[list])
-                item_to_increment = input("\n> Enter the name of the item to increment: ")
-                client_local_lists[list].increment_quantity(item_to_increment)
-                print("\nItem quantity incremented successfully.")
-            case "6":
-                print(client_local_lists[list])
-                item_to_decrement = input("\n> Enter the name of the item to decrement: ")
-                client_local_lists[list].decrement_quantity(item_to_decrement)
-                print("\nItem quantity decremented successfully.")
-
-    save_client_state(user)
-
-    # Synchronize Shopping List
-    socket = connect_to_server(context)
-    if socket is not None:
-        try:
-            # Send message to server
-            # pdb.set_trace()
-            message = json.dumps(client_local_lists[list].to_dict())
-            # print("Sending message to server")
-            socket.send_string(message)
+        if client_local_lists[list].deleted == True:
+            print("List deleted.")
             
-            # Set a timeout for receiving the response
-            socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
-            
-            try:
-                response = socket.recv().decode()
-                print("Message received from server")
-                server_shopping_list = ShoppingList().from_dict(json.loads(response))
-                client_local_lists[list].items = server_shopping_list.items
+        else: 
+            # Show user list content
+            operation = show_menu(list)
+                
+            # Modify Shopping List
+            if operation == "1":
+
+                operation = show_modifiers()
+
+                # Add item
+                match operation:
+                    case "1":
+                        item = {}
+                        name = input("\n> Enter item name: ")
+                        quantity = input("> Enter item quantity: ")
+
+                        try:
+                            item["quantity"] = int(quantity)
+                            item["acquired"] = False
+                            client_local_lists[list].add_item(name, item)
+                            print("\nItem added successfully.")
+
+                        except ValueError:
+                            print("Quantity must be an integer.")
+
+                    case "2":
+                        print(client_local_lists[list])
+                        item_to_remove = input("\n> Enter the name of the item to remove: ")
+                        client_local_lists[list].delete_item(item_to_remove)
+                        print("\nItem removed successfully.")
+                    case "3":
+                        print(client_local_lists[list])
+                        item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
+                        client_local_lists[list].acquire_item(item_acquired)
+                        print("\nItem marked as acquired successfully.")
+                    case "4":
+                        print(client_local_lists[list])
+                        item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
+                        client_local_lists[list].not_acquire_item(item_acquired)
+                        print("\nItem marked as not acquired successfully.")
+                    case "5":
+                        print(client_local_lists[list])
+                        item_to_increment = input("\n> Enter the name of the item to increment: ")
+                        client_local_lists[list].increment_quantity(item_to_increment)
+                        print("\nItem quantity incremented successfully.")
+                    case "6":
+                        print(client_local_lists[list])
+                        item_to_decrement = input("\n> Enter the name of the item to decrement: ")
+                        client_local_lists[list].decrement_quantity(item_to_decrement)
+                        print("\nItem quantity decremented successfully.")
+            elif operation == "2":
+                client_local_lists[list].delete()
                 save_client_state(user)
+                print("List deleted.")
+                
+            elif operation == "3":
+                break
+
+            save_client_state(user)
+
+        # Synchronize Shopping List
+        socket = connect_to_server(context)
+        if socket is not None:
+            try:
+                # Send message to server
+                # pdb.set_trace()
+                message = json.dumps(client_local_lists[list].to_dict())
+                # print("Sending message to server")
+                socket.send_string(message)
+                
+                # Set a timeout for receiving the response
+                socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
+                
+                try:
+                    response = socket.recv().decode()
+                    print("Message received from server")
+                    server_shopping_list = ShoppingList().from_dict(json.loads(response))
+                    client_local_lists[list].items = server_shopping_list.items
+                    client_local_lists[list].deleted = server_shopping_list.deleted
+                    save_client_state(user)
+                    socket.close()
+
+                except zmq.Again:
+                    # print("No response from server within the timeout period.")
+                    socket.close()
+
+            except Exception as e:
+                # print(f"Error sending message to the server: {e}\n")
                 socket.close()
 
-            except zmq.Again:
-                # print("No response from server within the timeout period.")
-                socket.close()
+        if client_local_lists[list].deleted == True:
+            print("List deleted.")
+            break
 
-        except Exception as e:
-            # print(f"Error sending message to the server: {e}\n")
-            socket.close()
 
         
     

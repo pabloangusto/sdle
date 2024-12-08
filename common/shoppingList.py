@@ -360,11 +360,13 @@ class AWORMap(Generic[K, V]):
             
             if key in self.entries and key in other.entries:
                 # pdb.set_trace()
-                v = next((v for k, v in self.keys.core.Entries.items() if v == key), None)
-                v2 = next((v for k, v in other.keys.core.Entries.items() if v == key), None)
-                if v > v2:
+                k1 = next((k for k, v in self.keys.core.Entries.items() if v == key), None)
+                k2 = next((k for k, v in other.keys.core.Entries.items() if v == key), None)
+                # print(self.keys.core.Entries.items(), other.keys.core.Entries.items())
+                # print(k1, k2)
+                if k1[1] > k2[1]:
                     entries[key] = self.entries[key]
-                elif v < v2:
+                elif k1[1] < k2[1]:
                     entries[key] = other.entries[key]
                 else:
                 # if r1 > r2:
@@ -395,6 +397,7 @@ class ShoppingList:
         self.id = 0
         self.list = 0
         self.items = AWORMap[str, Item]()
+        self.deleted = False
 
     def get_id(self):
         return self.id
@@ -412,7 +415,11 @@ class ShoppingList:
         return len(self.items.value()) == 0
     
     def is_equal(self, other):
-        return self.items.to_dict() == other.items.to_dict()
+        return self.deleted == other.deleted and self.items.to_dict() == other.items.to_dict()
+    
+    def delete(self):
+        self.deleted = True
+        self.items = None
 
     def add_item(self, name, item):
         if name not in self.items.value():
@@ -456,30 +463,41 @@ class ShoppingList:
     def from_dict(self, data):
         self.id = data.get("id", 0)
         self.list = data.get("list", 0)
-        self.items.from_dict(data.get("items", {}))
+        self.deleted = data.get("deleted", False)
+        if self.deleted:
+            self.items = None
+        else:
+            self.items.from_dict(data.get("items", {}))
         return self
 
     def to_dict(self):
         return {
             "id": self.id,
             "list": self.list,
-            "items": self.items.to_dict() 
+            "items": self.items.to_dict() if self.items is not None else None,
+            "deleted": self.deleted
         }
     
     def __str__(self):
         # pdb.set_trace()
         result ="\n_________________________________\n"
         result += "\n> Shopping List Items:\n\n"
-        if self.is_empty():
-            result += "The list is empty.\n"
-        else:   
-            for name, item in self.items.value().items():
-                result += f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n"
+        if self.deleted:
+            result += "The list has been deleted.\n"
+        else:
+            if self.is_empty():
+                result += "The list is empty.\n"
+            else:   
+                for name, item in self.items.value().items():
+                    result += f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n"
         result +="\n_________________________________"
         return result
     
     def merge(self, other):
-        self.items.merge(self.id, other.items, other.id)
+        if other.deleted or self.deleted:
+            self.delete()
+        else:
+            self.items.merge(self.id, other.items, other.id)
 
 
     
