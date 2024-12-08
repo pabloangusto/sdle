@@ -81,7 +81,7 @@ def propagate_update(preference_list, response):
                 try:
                     # print("Esperando respuesta del servidor")
                     ack = socket.recv()
-                    print(f"Received ack from server {p}: {ack}")
+                    print(f"Received ack from server {p}")
                     n_shopping_list = ShoppingList().from_dict(json.loads(ack))
                     if not server_local_lists[n_shopping_list.list].is_equal(n_shopping_list):
                         server_local_lists[n_shopping_list.list].merge(n_shopping_list)
