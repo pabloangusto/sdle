@@ -235,10 +235,10 @@ class CCounter(Generic[V, K]):
     def inc(self, id, val: V = 1):
         dots = set()
         base = 0
-        # pdb.set_trace()
+        pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
-                base = max(base, value)
+                # base = max(base, value)
                 # base = value
                 dots.add(dot)
         for dot in dots:
@@ -253,7 +253,8 @@ class CCounter(Generic[V, K]):
         pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
-                base = max(base, value)
+                # base = max(base, value)
+                base = value
                 dots.add(dot)
         for dot in dots:
             self.dk.merge(self.dk)
