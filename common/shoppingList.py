@@ -239,7 +239,7 @@ class CCounter(Generic[V, K]):
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 # base = max(base, value)
-                # base = value
+                base = value
                 dots.add(dot)
         for dot in dots:
             self.dk.merge(self.dk)
@@ -250,16 +250,17 @@ class CCounter(Generic[V, K]):
     def dec(self, id, val: V = 1):
         dots = set()
         base = 0
-        pdb.set_trace()
-        for dot, value in self.dk.Entries.items():
-            if dot[0] == id:
-                # base = max(base, value)
-                base = value
-                dots.add(dot)
-        for dot in dots:
-            self.dk.merge(self.dk)
-            del self.dk.Entries[dot]
-        self.dk.add(id, base - val)
+        if self.read() > 0:
+            pdb.set_trace()
+            for dot, value in self.dk.Entries.items():
+                if dot[0] == id:
+                    # base = max(base, value)
+                    base = value
+                    dots.add(dot)
+            for dot in dots:
+                self.dk.merge(self.dk)
+                del self.dk.Entries[dot]
+            self.dk.add(id, base - val)
 
     def reset(self):
         r = CCounter(self.id)
