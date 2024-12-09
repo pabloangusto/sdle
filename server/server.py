@@ -128,14 +128,18 @@ def request_received(socket, message_multipart):
             server_local_lists[client_shopping_list.list] = client_shopping_list
             response = server_local_lists[client_shopping_list.list].to_dict()
             print("Sending not changed message to client")
-            propagate_update(preference_list, json.dumps(client_shopping_list.to_dict()))
+            propagate = threading.Thread(target=propagate_update, args=(preference_list, json.dumps(client_shopping_list.to_dict())))
+            propagate.start()
+            # propagate_update(preference_list, json.dumps(client_shopping_list.to_dict()))
             # pdb.set_trace()
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
         else:
             server_local_lists[client_shopping_list.list].merge(client_shopping_list)
             response = server_local_lists[client_shopping_list.list].to_dict()
-            propagate_update(preference_list, json.dumps(response))
+            propagate = threading.Thread(target=propagate_update, args=(preference_list, json.dumps(response)))
+            propagate.start()
+            # propagate_update(preference_list, json.dumps(response))
             print("Sending message to client")
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 

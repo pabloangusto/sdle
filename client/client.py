@@ -90,6 +90,7 @@ while True:
         shopping_list = ShoppingList()
         shopping_list.set_id(user)
         shopping_list.set_list(list)
+        shopping_list.creator = user
 
 
         client_local_lists[list] = shopping_list
@@ -178,7 +179,7 @@ while True:
                     server_shopping_list = ShoppingList().from_dict(json.loads(response))
                     client_local_lists[list].items = server_shopping_list.items
                     client_local_lists[list].deleted = server_shopping_list.deleted
-                    client_local_lists[list].id = server_shopping_list.id
+                    client_local_lists[list].creator = server_shopping_list.creator
                     save_client_state(user)
                     socket.close()
 

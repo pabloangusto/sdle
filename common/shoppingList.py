@@ -234,7 +234,7 @@ class CCounter(Generic[V, K]):
 
     def inc(self, id, val: V = 1):
         dots = set()
-        base = self.dk.Entries[id] if id in self.dk.Entries else 0
+        base = 0
         # pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
@@ -250,7 +250,7 @@ class CCounter(Generic[V, K]):
     def dec(self, id, val: V = 1):
         dots = set()
         base = 0
-        # pdb.set_trace()
+        pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 base = max(base, value)
@@ -269,6 +269,8 @@ class CCounter(Generic[V, K]):
         return sum(value.read() if isinstance(value, CCounter) else value for value in self.dk.Entries.values())
 
     def join(self, other):
+        # pdb.set_trace()
+        print(self.dk.Entries, other.dk.Entries)
         self.dk.merge(other.dk)
 
     def __str__(self):
@@ -362,7 +364,7 @@ class AWORMap(Generic[K, V]):
                 # pdb.set_trace()
                 k1 = next((k for k, v in self.keys.core.Entries.items() if v == key), None)
                 k2 = next((k for k, v in other.keys.core.Entries.items() if v == key), None)
-                # print(self.keys.core.Entries.items(), other.keys.core.Entries.items())
+                print(self.keys.core.Entries.items(), other.keys.core.Entries.items())
                 # print(k1, k2)
                 if k1[1] > k2[1]:
                     entries[key] = self.entries[key]
@@ -370,8 +372,10 @@ class AWORMap(Generic[K, V]):
                     entries[key] = other.entries[key]
                 else:
                 # if r1 > r2:
-                    entries[key] = self.entries[key]
-                    entries[key].merge(other.entries[key])
+                    # entries[key] = self.entries[key]
+                    # entries[key].merge(other.entries[key])
+                    entries[key] = other.entries[key]
+                    entries[key].merge(self.entries[key])
             elif key in self.entries:
                 entries[key] = self.entries[key]
             elif key in other.entries:
@@ -398,6 +402,7 @@ class ShoppingList:
         self.list = 0
         self.items = AWORMap[str, Item]()
         self.deleted = False
+        self.creator = 0
 
     def get_id(self):
         return self.id
@@ -419,9 +424,9 @@ class ShoppingList:
     
     def delete(self, id_user=None):
         if id_user is None:
-            id_user = self.id
+            id_user = self.creator
 
-        if self.id == id_user:
+        if self.creator == id_user:
             self.deleted = True
             self.items = None
             print("List deleted.")
