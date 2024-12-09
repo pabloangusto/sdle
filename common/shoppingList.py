@@ -415,11 +415,20 @@ class ShoppingList:
         return len(self.items.value()) == 0
     
     def is_equal(self, other):
-        return self.deleted == other.deleted and self.items.to_dict() == other.items.to_dict()
+        return self.deleted == other.deleted or self.items.to_dict() == other.items.to_dict()
     
-    def delete(self):
-        self.deleted = True
-        self.items = None
+    def delete(self, id_user=None):
+        if id_user is None:
+            id_user = self.id
+
+        if self.id == id_user:
+            self.deleted = True
+            self.items = None
+            print("List deleted.")
+
+        else:
+            print("You can't delete this shopping list.")
+            
 
     def add_item(self, name, item):
         if name not in self.items.value():

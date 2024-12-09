@@ -151,9 +151,8 @@ while True:
                         client_local_lists[list].decrement_quantity(item_to_decrement)
                         print("\nItem quantity decremented successfully.")
             elif operation == "2":
-                client_local_lists[list].delete()
+                client_local_lists[list].delete(user)
                 save_client_state(user)
-                print("List deleted.")
                 
             elif operation == "3":
                 break
@@ -179,6 +178,7 @@ while True:
                     server_shopping_list = ShoppingList().from_dict(json.loads(response))
                     client_local_lists[list].items = server_shopping_list.items
                     client_local_lists[list].deleted = server_shopping_list.deleted
+                    client_local_lists[list].id = server_shopping_list.id
                     save_client_state(user)
                     socket.close()
 
