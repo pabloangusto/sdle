@@ -235,7 +235,7 @@ class CCounter(Generic[V, K]):
     def inc(self, id, val: V = 1):
         dots = set()
         base = 0
-        pdb.set_trace()
+        # pdb.set_trace()
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 # base = max(base, value)
@@ -251,7 +251,7 @@ class CCounter(Generic[V, K]):
         dots = set()
         base = 0
         if self.read() > 0:
-            pdb.set_trace()
+            # pdb.set_trace()
             for dot, value in self.dk.Entries.items():
                 if dot[0] == id:
                     # base = max(base, value)
@@ -274,6 +274,8 @@ class CCounter(Generic[V, K]):
         # pdb.set_trace()
         print(self.dk.Entries, other.dk.Entries)
         self.dk.merge(other.dk)
+        if self.read() < 0:
+            self.inc(self.id, -self.read())
 
     def __str__(self):
         return f"CausalCounter: {self.dk}"
