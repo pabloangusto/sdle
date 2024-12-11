@@ -482,6 +482,7 @@ class ShoppingList:
         self.id = data.get("id", 0)
         self.list = data.get("list", 0)
         self.deleted = data.get("deleted", False)
+        self.creator = data.get("creator", 0)
         if self.deleted:
             self.items = None
         else:
@@ -493,7 +494,8 @@ class ShoppingList:
             "id": self.id,
             "list": self.list,
             "items": self.items.to_dict() if self.items is not None else None,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "creator": self.creator
         }
     
     def __str__(self):
