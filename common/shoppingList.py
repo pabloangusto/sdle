@@ -440,6 +440,9 @@ class ShoppingList:
             
 
     def add_item(self, name, item):
+        #No negative number
+        if item["quantity"] <= 0:
+            raise ValueError("Quantity cannot be negative or zero.")
         if name not in self.items.value():
             i = Item(id=self.id)
             i.counter.inc(self.id, item["quantity"])
@@ -507,7 +510,7 @@ class ShoppingList:
                 result += "The list is empty.\n"
             else:   
                 for name, item in self.items.value().items():
-                    result += f" - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n"
+                    result += f' - Name: {name}, Quantity: {item["counter"]}, Acquired: {item["flag"]}\n'
         result +="\n_________________________________"
         return result
     

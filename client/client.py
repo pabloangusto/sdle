@@ -75,13 +75,13 @@ def connect_to_server(context0):
 client_local_lists = {}
 context = zmq.Context()
 
-
-print("\nPlease enter your username. ")
-user = input("> Username: ")
-
-load_client_state(user)
-
 while True:
+    print("\nPlease enter your username. ")
+    user = input("> Username: ")
+
+    load_client_state(user)
+
+
     print("\nPlease enter listID. ")
     list = input("> ListID: ")
     print("Hashing list id", int(hashlib.md5(list.encode()).hexdigest(), 16))
@@ -113,44 +113,78 @@ while True:
                 # Add item
                 match operation:
                     case "1":
-                        item = {}
-                        name = input("\n> Enter item name: ")
-                        quantity = input("> Enter item quantity: ")
+                        while True: #Keeps you in the menu
+                            
+                            try:
+                                item = {}
+                                name = input("\n> Enter item name: ")
+                                quantity = input("> Enter item quantity: ")
+                                item["quantity"] = int(quantity)
+                                item["acquired"] = False
+                                client_local_lists[list].add_item(name, item)
+                                print("\nItem added successfully.")
+                                break
 
-                        try:
-                            item["quantity"] = int(quantity)
-                            item["acquired"] = False
-                            client_local_lists[list].add_item(name, item)
-                            print("\nItem added successfully.")
-
-                        except ValueError:
-                            print("Quantity must be an integer.")
+                            except ValueError:
+                                print("An error has occurred, please check the list or write a valid quantity.")
 
                     case "2":
-                        print(client_local_lists[list])
-                        item_to_remove = input("\n> Enter the name of the item to remove: ")
-                        client_local_lists[list].delete_item(item_to_remove)
-                        print("\nItem removed successfully.")
+                        while True:
+                            print(client_local_lists[list])
+                            item_to_remove = input("\n> Enter the name of the item to remove: ")
+
+                            try:
+                                client_local_lists[list].delete_item(item_to_remove)
+                                print("\nItem removed successfully.")
+                                break
+                            except ValueError:
+                                print("That item doesn't exist in the shopping list.")
                     case "3":
-                        print(client_local_lists[list])
-                        item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
-                        client_local_lists[list].acquire_item(item_acquired)
-                        print("\nItem marked as acquired successfully.")
+                        while True:
+                            print(client_local_lists[list])
+                            item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
+
+                            try:
+                                client_local_lists[list].acquire_item(item_acquired)
+                                print("\nItem marked as acquired successfully.")
+                                break
+                            except ValueError:
+                                print("That item doesn't exist in the shopping list.")
                     case "4":
-                        print(client_local_lists[list])
-                        item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
-                        client_local_lists[list].not_acquire_item(item_acquired)
-                        print("\nItem marked as not acquired successfully.")
+                        while True:
+                            print(client_local_lists[list])
+                            item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
+
+                            try:
+                                client_local_lists[list].not_acquire_item(item_acquired)
+                                print("\nItem marked as not acquired successfully.")
+                                break
+                            except ValueError:
+                                print("That item doesn't exist in the shopping list.")
                     case "5":
-                        print(client_local_lists[list])
-                        item_to_increment = input("\n> Enter the name of the item to increment: ")
-                        client_local_lists[list].increment_quantity(item_to_increment)
-                        print("\nItem quantity incremented successfully.")
+                        while True:
+                            print(client_local_lists[list])
+                            item_to_increment = input("\n> Enter the name of the item to increment: ")
+
+                            try:
+                                client_local_lists[list].increment_quantity(item_to_increment)
+                                print("\nItem quantity incremented successfully.")
+                                break
+                            except ValueError:
+                                print("That item doesn't exist in the shopping list.")  
                     case "6":
-                        print(client_local_lists[list])
-                        item_to_decrement = input("\n> Enter the name of the item to decrement: ")
-                        client_local_lists[list].decrement_quantity(item_to_decrement)
-                        print("\nItem quantity decremented successfully.")
+                        while True:
+
+                            print(client_local_lists[list])
+                            item_to_decrement = input("\n> Enter the name of the item to decrement: ")
+
+                            try:
+                                client_local_lists[list].decrement_quantity(item_to_decrement)
+                                print("\nItem quantity decremented successfully.")
+                                break
+                            except ValueError:
+                                print("That item doesn't exist in the shopping list.")
+            
             elif operation == "2":
                 client_local_lists[list].delete(user)
                 save_client_state(user)
