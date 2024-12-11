@@ -104,59 +104,65 @@ while True:
         else: 
             # Show user list content
             operation = show_menu(list)
-                
+                   
             # Modify Shopping List
             if operation == "1":
 
                 operation = show_modifiers()
+                try:
 
-                # Add item
-                match operation:
-                    case "1":
-                        item = {}
-                        name = input("\n> Enter item name: ")
-                        quantity = input("> Enter item quantity: ")
+                    # Add item
+                    match operation:
+                        case "1":
+                            item = {}
+                            name = input("\n> Enter item name: ")
+                            quantity = input("> Enter item quantity: ")
 
-                        try:
-                            item["quantity"] = int(quantity)
-                            item["acquired"] = False
-                            client_local_lists[list].add_item(name, item)
-                            print("\nItem added successfully.")
+                            try:
+                                item["quantity"] = int(quantity)
+                                item["acquired"] = False
+                                client_local_lists[list].add_item(name, item)
+                                print("\nItem added successfully.")
 
-                        except ValueError:
-                            print("Quantity must be an integer.")
+                            except ValueError:
+                                print("Quantity must be an integer.")
 
-                    case "2":
-                        print(client_local_lists[list])
-                        item_to_remove = input("\n> Enter the name of the item to remove: ")
-                        client_local_lists[list].delete_item(item_to_remove)
-                        print("\nItem removed successfully.")
-                    case "3":
-                        print(client_local_lists[list])
-                        item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
-                        client_local_lists[list].acquire_item(item_acquired)
-                        print("\nItem marked as acquired successfully.")
-                    case "4":
-                        print(client_local_lists[list])
-                        item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
-                        client_local_lists[list].not_acquire_item(item_acquired)
-                        print("\nItem marked as not acquired successfully.")
-                    case "5":
-                        print(client_local_lists[list])
-                        item_to_increment = input("\n> Enter the name of the item to increment: ")
-                        client_local_lists[list].increment_quantity(item_to_increment)
-                        print("\nItem quantity incremented successfully.")
-                    case "6":
-                        print(client_local_lists[list])
-                        item_to_decrement = input("\n> Enter the name of the item to decrement: ")
-                        client_local_lists[list].decrement_quantity(item_to_decrement)
-                        print("\nItem quantity decremented successfully.")
+                        case "2":
+                            print(client_local_lists[list])
+                            item_to_remove = input("\n> Enter the name of the item to remove: ")
+                            client_local_lists[list].delete_item(item_to_remove)
+                            print("\nItem removed successfully.")
+                        case "3":
+                            print(client_local_lists[list])
+                            item_acquired = input("\n> Enter the name of the item to mark as acquired: ")
+                            client_local_lists[list].acquire_item(item_acquired)
+                            print("\nItem marked as acquired successfully.")
+                        case "4":
+                            print(client_local_lists[list])
+                            item_acquired = input("\n> Enter the name of the item to mark as not aquired: ")
+                            client_local_lists[list].not_acquire_item(item_acquired)
+                            print("\nItem marked as not acquired successfully.")
+                        case "5":
+                            print(client_local_lists[list])
+                            item_to_increment = input("\n> Enter the name of the item to increment: ")
+                            client_local_lists[list].increment_quantity(item_to_increment)
+                            print("\nItem quantity incremented successfully.")
+                        case "6":
+                            print(client_local_lists[list])
+                            item_to_decrement = input("\n> Enter the name of the item to decrement: ")
+                            client_local_lists[list].decrement_quantity(item_to_decrement)
+                            print("\nItem quantity decremented successfully.")
+                except Exception as e:
+                    print(f"Error modifying list: {e}\n")
+            
             elif operation == "2":
                 client_local_lists[list].delete(user)
                 save_client_state(user)
                 
             elif operation == "3":
                 break
+            
+
 
             save_client_state(user)
 
