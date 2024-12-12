@@ -27,7 +27,6 @@ def load_client_state(id):
                 client_local_lists[list_id] = ShoppingList()
                 client_local_lists[list_id].from_dict(list_data)
     except Exception as e:
-        # print(f"Error loading state: {e}\n")
         return False
     return True
 
@@ -173,7 +172,6 @@ while True:
                 # Send message to server
                 
                 message = json.dumps(client_local_lists[list].to_dict())
-                # print("Sending message to server")
                 socket.send_string(message)
                 
                 # Set a timeout for receiving the response
@@ -190,11 +188,9 @@ while True:
                     socket.close()
 
                 except zmq.Again:
-                    # print("No response from server within the timeout period.")
                     socket.close()
 
             except Exception as e:
-                # print(f"Error sending message to the server: {e}\n")
                 socket.close()
 
         if client_local_lists[list].deleted == True:

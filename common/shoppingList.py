@@ -106,7 +106,6 @@ class DotKernel(Generic[T]):
         if self is other:  # Evita auto-merge (idempotente)
             return
 
-        # Obtener iteradores ordenados para los dots de ambos kernels
         it_keys = iter(sorted(self.Entries.keys()))
         ito_keys = iter(sorted(other.Entries.keys()))
 
@@ -115,17 +114,14 @@ class DotKernel(Generic[T]):
 
         while it is not None or ito is not None:
             if it is not None and (ito is None or it < ito):
-                # Dot solo en `self`
-                if other.Context.contains(*it):  # Si el otro conoce el dot, eliminar aquí
+                if other.Context.contains(*it):  
                     del self.Entries[it]
                 it = next(it_keys, None)
             elif ito is not None and (it is None or ito < it):
-                # Dot solo en `other`
-                if not self.Context.contains(*ito):  # Si no lo conocemos, importar
+                if not self.Context.contains(*ito):  
                     self.Entries[ito] = other.Entries[ito]
                 ito = next(ito_keys, None)
             elif it is not None and ito is not None:
-                # Dot en ambos
                 it = next(it_keys, None)
                 ito = next(ito_keys, None)
 
@@ -238,7 +234,6 @@ class CCounter(Generic[V, K]):
         
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
-                # base = max(base, value)
                 base = value
                 dots.add(dot)
         for dot in dots:
@@ -369,15 +364,11 @@ class AWORMap(Generic[K, V]):
                 k1 = next((k for k, v in self.keys.core.Entries.items() if v == key), None)
                 k2 = next((k for k, v in other.keys.core.Entries.items() if v == key), None)
                 print(self.keys.core.Entries.items(), other.keys.core.Entries.items())
-                # print(k1, k2)
                 if k1[1] > k2[1]:
                     entries[key] = self.entries[key]
                 elif k1[1] < k2[1]:
                     entries[key] = other.entries[key]
                 else:
-                # if r1 > r2:
-                    # entries[key] = self.entries[key]
-                    # entries[key].merge(other.entries[key])
                     entries[key] = other.entries[key]
                     entries[key].merge(self.entries[key])
             elif key in self.entries:

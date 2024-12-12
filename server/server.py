@@ -35,7 +35,6 @@ def load_server_state(id):
                 server_local_lists[list_id] = ShoppingList()
                 server_local_lists[list_id].from_dict(list_data)
     except Exception as e:
-        # print(f"Error loading state: {e}\n")
         return False
     return True
 
@@ -79,7 +78,6 @@ def propagate_update(preference_list, response):
                 socket.send_string(response)
                 socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
                 try:
-                    # print("Esperando respuesta del servidor")
                     ack = socket.recv()
                     print(f"Received ack from server {p}")
                     n_shopping_list = ShoppingList().from_dict(json.loads(ack))
@@ -100,7 +98,6 @@ def request_received(socket, message_multipart):
     print("Received request")
 
     client_shopping_list = ShoppingList().from_dict(json.loads(message))
-    # print(client_shopping_list)
     hash_list = hash_list_id(client_shopping_list.list)
     hash_nodes = []
     for i in range(VN):
@@ -118,7 +115,6 @@ def request_received(socket, message_multipart):
             sorted_nodes.append(node)
             if len(sorted_nodes) == N:
                 break
-    # sorted_nodes = sorted_nodes[:N]
     preference_list = []
     for n in sorted_nodes:
         preference_list.append(n['port'])
@@ -130,7 +126,6 @@ def request_received(socket, message_multipart):
             print("Sending not changed message to client")
             propagate = threading.Thread(target=propagate_update, args=(preference_list, json.dumps(client_shopping_list.to_dict())))
             propagate.start()
-            # propagate_update(preference_list, json.dumps(client_shopping_list.to_dict()))
             
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
@@ -139,7 +134,6 @@ def request_received(socket, message_multipart):
             response = server_local_lists[client_shopping_list.list].to_dict()
             propagate = threading.Thread(target=propagate_update, args=(preference_list, json.dumps(response)))
             propagate.start()
-            # propagate_update(preference_list, json.dumps(response))
             print("Sending message to client")
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
@@ -207,7 +201,6 @@ def node_request():
             socket3.send(b"ok")
             update_thread = threading.Thread(target=request_received, args=(socket, message))
             update_thread.start()
-        # request_received(socket, message)
 
 id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 port = 5500 + id
@@ -235,7 +228,6 @@ update_thread = threading.Thread(target=node_request)
 update_thread.start()
 while True:
     message = socket.recv_multipart()
-    # print(f"Received request: {message}")
     request_received(socket, message)
 
 
