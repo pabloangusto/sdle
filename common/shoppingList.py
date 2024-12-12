@@ -83,7 +83,7 @@ class DotKernel(Generic[T]):
         return list(self.Entries.values())
 
     def add(self, rep, v):
-        # pdb.set_trace()
+        
         dot = self.Context.nextDot(rep)
         self.Entries[dot] = v
         self.Context.add(dot)
@@ -102,7 +102,7 @@ class DotKernel(Generic[T]):
         self.Context.compact()
 
     def merge(self, other):
-        # pdb.set_trace()
+        
         if self is other:  # Evita auto-merge (idempotente)
             return
 
@@ -235,7 +235,7 @@ class CCounter(Generic[V, K]):
     def inc(self, id, val: V = 1):
         dots = set()
         base = 0
-        # pdb.set_trace()
+        
         for dot, value in self.dk.Entries.items():
             if dot[0] == id:
                 # base = max(base, value)
@@ -245,13 +245,13 @@ class CCounter(Generic[V, K]):
             self.dk.merge(self.dk)
             del self.dk.Entries[dot]
         self.dk.add(id, base + val)
-        # pdb.set_trace()
+        
 
     def dec(self, id, val: V = 1):
         dots = set()
         base = 0
         if self.read() > 0:
-            # pdb.set_trace()
+            
             for dot, value in self.dk.Entries.items():
                 if dot[0] == id:
                     # base = max(base, value)
@@ -271,7 +271,7 @@ class CCounter(Generic[V, K]):
         return sum(value.read() if isinstance(value, CCounter) else value for value in self.dk.Entries.values())
 
     def join(self, other):
-        # pdb.set_trace()
+        
         print(self.dk.Entries, other.dk.Entries)
         self.dk.merge(other.dk)
         if self.read() < 0:
@@ -314,7 +314,7 @@ class Item:
     def read_flag(self):
         return self.flag.read()
     def read(self):
-        # pdb.set_trace()
+        
         return {
             "counter": self.counter.read(),
             "flag": self.flag.read()
@@ -343,7 +343,7 @@ class AWORMap(Generic[K, V]):
         return {k: v.read() for k, v in self.entries.items()}
 
     def add(self, r, key: K, value: V):
-        # pdb.set_trace()
+        
         self.keys.add(r, key)
         if key not in self.entries:
             self.entries[key] = value
@@ -356,16 +356,16 @@ class AWORMap(Generic[K, V]):
         return self
 
     def merge(self, r1, other, r2):
-        # pdb.set_trace()
+        
 
         self.keys.merge(other.keys)
         entries = dict()
-        # pdb.set_trace()
+        
 
         for key in self.keys.value():
             
             if key in self.entries and key in other.entries:
-                # pdb.set_trace()
+                
                 k1 = next((k for k, v in self.keys.core.Entries.items() if v == key), None)
                 k2 = next((k for k, v in other.keys.core.Entries.items() if v == key), None)
                 print(self.keys.core.Entries.items(), other.keys.core.Entries.items())
@@ -444,7 +444,7 @@ class ShoppingList:
             i = Item(id=self.id)
             i.counter.inc(self.id, item["quantity"])
             self.items.add(self.id, name, i)
-        # pdb.set_trace()
+        
         else:
             raise ValueError("Item already exists in the shopping list.")
             
@@ -499,7 +499,7 @@ class ShoppingList:
         }
     
     def __str__(self):
-        # pdb.set_trace()
+        
         result ="\n_________________________________\n"
         result += "\n> Shopping List Items:\n\n"
         if self.deleted:

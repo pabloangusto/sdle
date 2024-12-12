@@ -23,7 +23,7 @@ VN=3 # Number of virtual nodes
 def save_server_state(id):
     # Create directory if it doesn't exist
     os.makedirs(parent_dir + "/data/server", exist_ok=True)
-    # pdb.set_trace()
+    
     with open(parent_dir + "/data/server/"+str(id)+".json", "w") as f:
         json.dump({list_id: list_data.to_dict() for list_id, list_data in server_local_lists.items()}, f)
 
@@ -47,13 +47,13 @@ def forward_request(preference_list, client_shopping_list, message_multipart):
     print("Forwarding request")
     context = zmq.Context()
     message = json.dumps(client_shopping_list.to_dict())
-    # pdb.set_trace()
+    
     for p in preference_list:
-        # pdb.set_trace()
+        
             socket = context.socket(zmq.REQ)
             socket.connect(f"tcp://localhost:{p}")
             print(f"Sending message to server: {p}")
-            # pdb.set_trace()
+            
             socket.send_multipart([message_multipart[0], b'', message.encode() ])
             socket.RCVTIMEO = 1000  # 1000 milliseconds = 1 second
             try:
@@ -70,7 +70,7 @@ def propagate_update(preference_list, response):
     replicated = 1
     while replicated < min(N, len(preference_list)):
         for p in preference_list:
-            #pdb.set_trace()
+            
             if p != port:
                 context = zmq.Context()
                 socket = context.socket(zmq.REQ)
@@ -109,7 +109,7 @@ def request_received(socket, message_multipart):
                 hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5(str(n['id']).encode()).hexdigest(), 16)})
             else:
                 hash_nodes.append({'id': n['id'], 'port': n['port'], 'h': int(hashlib.md5((str(n['id']) + str(i)).encode()).hexdigest(), 16)})
-    #pdb.set_trace() 
+     
     unique_ids = set()
     sorted_nodes = []
     for node in sorted(hash_nodes, key=lambda x: (x['h'] < hash_list, x['h'])):
@@ -131,7 +131,7 @@ def request_received(socket, message_multipart):
             propagate = threading.Thread(target=propagate_update, args=(preference_list, json.dumps(client_shopping_list.to_dict())))
             propagate.start()
             # propagate_update(preference_list, json.dumps(client_shopping_list.to_dict()))
-            # pdb.set_trace()
+            
             socket.send_multipart([message_multipart[0],b'', json.dumps(response).encode()])
 
         else:
@@ -158,11 +158,11 @@ def seeds():
             message = socket2.recv_string()
             previous = False
             for value in active_nodes:
-                # pdb.set_trace()
+                
                 if(value['id'] == int(message.split(":")[0])):
                     previous = True
             if not previous:
-                # pdb.set_trace()
+                
                 active_nodes.append({"id": int(message.split(":")[0]), "port": int(message.split(":")[1])})
             message = ""
             for node in active_nodes:
@@ -175,7 +175,7 @@ def seeds():
             socket2.send_string(f"{id}:{port}")
             message = socket2.recv_string()
             message = message.split("\n")
-            # pdb.set_trace()
+            
             active_nodes.clear()
             for node in message:
                 if node:
@@ -188,7 +188,7 @@ def node_request():
     socket3.bind("tcp://localhost:"+str(port))
     while True:
         message = socket3.recv_multipart()
-        # pdb.set_trace()
+        
         if len(message) == 1:
             
             client_shopping_list = ShoppingList().from_dict(json.loads(message[0].decode()))

@@ -171,7 +171,7 @@ while True:
         if socket is not None:
             try:
                 # Send message to server
-                # pdb.set_trace()
+                
                 message = json.dumps(client_local_lists[list].to_dict())
                 # print("Sending message to server")
                 socket.send_string(message)
