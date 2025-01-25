@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import zmq
 
 # Prepare our context and sockets
