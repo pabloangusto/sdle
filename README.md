@@ -15,7 +15,7 @@ To run the project, follow these steps:
 
 1. **Clone the repository**:
     ```bash
-    git clone https://git.fe.up.pt/sdle/2024/t1/g12
+    git clone https://github.com/pabloangusto/sdle.git
     cd src
     ```
 
