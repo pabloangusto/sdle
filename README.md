@@ -1,14 +1,4 @@
-# SDLE Second Assignment
-
-SDLE Second Assignment of group T&lt;m&gt;&lt;n&gt;G&lt;p&gt;&lt;q&gt;.
-
-Group members:
-
-1. &lt;José&gt; &lt;Guedes&gt; (&lt;up202007651@fe.up.pt&gt;)
-2. &lt;Tomás&gt; &lt;Pires&gt; (&lt;up202008319@fe.up.pt&gt;)
-3. &lt;Felipe Javier&gt; &lt;Fresneda de Cos&gt; (&lt;up202401423@fe.up.pt&gt;)
-4. &lt;Pablo&gt; &lt;Angusto Delgado&gt; (&lt;up202402360@fe.up.pt&gt;)
-
+# ShoppingList App following Amazon Dynamo Architecture and CRDTs
 ## Instructions to run the project
 
 To run the project, follow these steps:
